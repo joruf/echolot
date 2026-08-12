@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Echolot
+Comment=Record conversations from the system tray
+Comment[de]=Gesprächsmitschnitt aus der System-Tray
+Comment[es]=Graba conversaciones desde el área de notificación
+Comment[fr]=Enregistre les conversations depuis la zone de notification
+Exec=python3 "/home/joruf/Applications/echolot/run.py"
+Icon=/home/joruf/Applications/echolot/resources/echolot-idle.svg
+Terminal=false
+StartupNotify=false
+StartupWMClass=echolot
+Categories=AudioVideo;Audio;Recorder;
+Keywords=recording;conversation;recorder;Aufnahme;Mitschnitt;Gespräch;
