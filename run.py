@@ -22,6 +22,39 @@ PROJECT_DIR = Path(__file__).resolve().parent
 if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 
+# --- what this application needs ----------------------------------------------------------------
+# Checked before anything below is imported. Whatever is missing is installed in a window that
+# shows the work as it happens; see bootstrap_ui.py. `--setup` opens that window even when nothing
+# is missing, which is how to see what is installed.
+from bootstrap_ui import Need, ensure  # noqa: E402
+
+NEEDS = (
+    Need(label="GTK 3 bindings for Python", module="gi",
+         packages=("python3-gi", "gir1.2-gtk-3.0")),
+    Need(label="Notification bindings", module="gi", packages=("gir1.2-notify-0.7",),
+         optional=True, note="there are no desktop notifications"),
+    Need(label="Mint desktop bindings", module="gi", packages=("gir1.2-xapp-1.0",),
+         optional=True, note="Mint's own status icon is unavailable"),
+    Need(label="FFmpeg", command="ffmpeg", packages=("ffmpeg",)),
+    Need(label="PulseAudio tools", command="parec", packages=("pulseaudio-utils",)),
+    Need(label="Desktop notifications", command="notify-send", packages=("libnotify-bin",),
+         optional=True, note="there are no desktop notifications"),
+)
+
+# Only when the application is actually being started. Importing this module — which the test
+# suite does — should not check anything, let alone put an installer window on screen.
+if __name__ == "__main__":
+    # Taken out of the arguments once it has been read, so the application's own parser does
+    # not trip over a flag that was never meant for it.
+    _SETUP = "--setup" in sys.argv
+
+    if _SETUP:
+        sys.argv.remove("--setup")
+
+    if not ensure("Echolot", NEEDS, force=_SETUP):
+        raise SystemExit(1)
+
+
 from echolot import __version__, paths  # noqa: E402
 from echolot.config import Config  # noqa: E402
 from echolot.i18n import t  # noqa: E402
