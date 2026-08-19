@@ -89,6 +89,30 @@ class ChannelMetrics:
 SILENT_METRICS = ChannelMetrics(peak=0, mean_abs=0.0, present=False)
 
 
+def sum_samples(parts: list[array]) -> tuple[array, bool]:
+    """Sum mono blocks with limiting; returns the result and whether it clipped.
+
+    Summed, not averaged: dividing would cost the whole recording level for the
+    sake of a few peaks. Used both for the mono mix of the two sides and for a
+    side that consists of several devices.
+    """
+    if not parts:
+        return array("h"), False
+    if len(parts) == 1:
+        return parts[0], False
+
+    total = list(parts[0])
+    for part in parts[1:]:
+        total = [first + second for first, second in zip(total, part)]
+    clipped = max(total) > MAX_SAMPLE or min(total) < MIN_SAMPLE
+    if clipped:
+        total = [
+            MAX_SAMPLE if value > MAX_SAMPLE else MIN_SAMPLE if value < MIN_SAMPLE else value
+            for value in total
+        ]
+    return array("h", total), clipped
+
+
 def measure(samples: array) -> tuple[int, float]:
     """Peak and mean absolute amplitude of a mono block."""
     if not samples:
@@ -324,17 +348,11 @@ class Mixer:
         if not mic_present:
             return speaker_samples.tobytes()
 
-        total = [first + second for first, second in zip(mic_samples, speaker_samples)]
-        if max(total) > MAX_SAMPLE or min(total) < MIN_SAMPLE:
-            # Both sides loud at the same instant. Clamping distorts that moment;
-            # halving every sample instead would quietly cost the whole recording
-            # 6 dB for the sake of a few peaks.
-            total = [
-                MAX_SAMPLE if value > MAX_SAMPLE else MIN_SAMPLE if value < MIN_SAMPLE else value
-                for value in total
-            ]
+        # Both sides loud at the same instant is the only case that can clip.
+        total, clipped = sum_samples([mic_samples, speaker_samples])
+        if clipped:
             self.clipped_blocks += 1
-        return array("h", total).tobytes()
+        return total.tobytes()
 
     def _write(self, mic_block: bytes | None, speaker_block: bytes | None) -> None:
         mic_samples, mic_present = self._as_samples(mic_block)

@@ -35,7 +35,8 @@ echolot/
   notify.py                libnotify with notify-send and stdout fallbacks
   audio/
     devices.py             pactl: sources, default sink → its monitor
-    capture.py             one parec process per side, respawn, retarget
+    capture.py             one parec process per device, respawn, retarget
+    group.py               several devices presented to the mixer as one side
     mixer.py               the timeline: two mono sides → one mixed or split stream
     encoder.py             ffmpeg process, PCM in through stdin
     preroll.py             ring buffer of the last minutes, handed over on start
@@ -171,6 +172,20 @@ The buffer is rebuilt whenever layout, sample rate, block length or the device s
 every recording, and while idle it follows device changes like a recording does.
 
 ## 5. Device handling
+
+Both sides default to `ALL`: every input is the microphone side, every output monitor is the other
+side. `audio/group.py` sums the devices of a side and presents them to the mixer as a single source,
+so the timeline, the layouts, the log and the pre-roll are untouched - the mixer still asks one object
+for the next block. An idle device delivers digital silence and contributes nothing, which is why
+recording everything costs no more than one `parec` process per device.
+
+A device that appears while recording is added to its side (`source_added`) instead of replacing
+anything; a single-device side still uses the gap-free `retarget`. `AUTO` and naming one device remain
+available per side, and **every** source is offered for either side, because the other side's audio
+does not always arrive on a monitor.
+
+Older settings files are migrated: a side still saying `AUTO` inherited the old default and is moved
+to `ALL`, while a hand-picked device is left alone (`config.SETTINGS_VERSION`).
 
 `devices.resolve()` turns the configured values into real device names:
 

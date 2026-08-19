@@ -41,6 +41,7 @@ Interface available in **English** (default), **German**, **Spanish** and **Fren
 | | |
 |---|---|
 | **Both sides in one file** | your microphone and the system output (the other person), recorded together |
+| **Everything by default** | every input and every output monitor at once, so no device choice can be wrong and audio on a secondary output is not missed |
 | **Double click to record** | one gesture in the tray starts and stops it; a single click deliberately does nothing |
 | **Blinking icon** | while a recording runs the icon blinks red — it is never unclear whether you are recording |
 | **Who spoke when** | measured per side *before* mixing and written to a JSON Lines log, so a transcript can attribute speakers without a diarisation model |
@@ -112,7 +113,7 @@ You         ▮▮▮▮▮▯▯▯▯▯▯▯    -28 dB     ← live while th
 Other side  ▮▮▮▮▮▮▮▯▯▯▯▯    -19 dB
 Level test …
 ──────────────────────────────────
-Devices                       ▸       ← fixed device or automatic, per side
+Devices                       ▸       ← all sources (default), automatic, or one
 Recent recordings             ▸       ← last five: play, open folder, open log
 Open folder
 ──────────────────────────────────
@@ -144,6 +145,20 @@ started in the same second as an existing one becomes `…_2`.
 | **Opus** (default, 64 kbit/s) | ≈ 30 MB | speech; a full working day of talking costs ≈ 240 MB |
 | FLAC | ≈ 350 MB | lossless, if a recording has to be bit-exact |
 | WAV | ≈ 660 MB | maximum compatibility with old tools |
+
+### Recording everything
+
+Both sides default to `all`: the microphone side is **every input**, the other side is **every output
+monitor** the machine has. The devices of a side are summed, and an idle device delivers digital
+silence, so having it along costs nothing. Two consequences:
+
+* No device choice can be wrong, and audio playing on a *secondary* output is captured rather than
+  missed. Verified by playing a tone only into a second, non-default output: it is in the recording.
+* A device that appears during a conversation joins its side without interrupting anything.
+
+`auto` (follow the system default) and naming one device by hand remain available per side, in
+*Devices* and in the settings file. Every source is offered for **either** side, because the other
+side's audio does not always arrive on a monitor — a virtual cable or a line input is a real case.
 
 ## 5. Track layout: mixed or split
 
@@ -241,9 +256,9 @@ later version are filled in and written back once — the tray always comes up.
 | `audio.preroll_minutes` | `0` | 0 = off, up to 5 |
 | `audio.sample_rate` | `48000` | 8000 / 12000 / 16000 / 24000 / 48000 |
 | `audio.block_ms` | `20` | pipeline block length; also the log's time resolution |
-| `devices.mic` | `"auto"` | `auto` = system default, or a source name |
-| `devices.speaker` | `"auto"` | `auto` = monitor of the default sink, or a source name |
-| `devices.follow_default` | `true` | follow device changes, during a recording too |
+| `devices.mic` | `"all"` | `all` = every input, `auto` = the system default, or one source name |
+| `devices.speaker` | `"all"` | `all` = every output monitor, `auto` = monitor of the default sink, or one source name |
+| `devices.follow_default` | `true` | take in devices that appear later, during a recording too |
 | `tray.blink` | `true` | icon blinks while recording |
 | `tray.blink_interval_ms` | `700` | 200–5000 |
 | `warnings.silent_side_seconds` | `20` | say so **during** the conversation when a side delivers nothing but exact zeros; 0 = off |
@@ -301,6 +316,7 @@ the audio file, so they work directly as playback offsets.
 | `preroll_written` | the buffered lead-up was written, and whether it was `complete` |
 | `recording_started` | the moment record was pressed; everything before it is pre-roll |
 | `side_no_audio` | a side has been delivering nothing but exact zeros - reported while the recording runs |
+| `source_added` | a device appeared and joined its side while recording |
 | `preroll_device_changed` | the device changed while the buffer was filling |
 | `pause` / `resume` | user paused |
 | `device_change` | routing switched mid-recording |
@@ -330,6 +346,8 @@ label or a missing log line — what cannot is the sentence the other person jus
   throughout. Verified by killing `parec` mid-recording: the other channel was uninterrupted.
 * **A side delivers nothing** — silence is written for it so both sides stay aligned, and it is
   counted in the log instead of quietly disappearing.
+* **Audio plays on a secondary output** — captured anyway: every output monitor is recorded, not just
+  the default one. A device that appears mid-recording joins its side (`source_added`).
 * **No microphone at all** — the other side is still recorded, and you get a warning.
 * **The log cannot be written** — the audio keeps recording.
 * **ffmpeg is killed with the session** (logging out) — reported as a warning with duration and size,

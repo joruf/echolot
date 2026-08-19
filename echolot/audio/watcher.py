@@ -121,9 +121,9 @@ class DeviceWatcher:
     def _check(self) -> None:
         resolution = devices.resolve(self.mic_setting, self.speaker_setting)
         previous = self.last
-        if previous is not None and (previous.mic, previous.speaker) == (
-            resolution.mic,
-            resolution.speaker,
+        if previous is not None and (previous.mics, previous.speakers) == (
+            resolution.mics,
+            resolution.speakers,
         ):
             return
         self.last = resolution

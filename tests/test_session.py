@@ -71,7 +71,7 @@ def test_start_refuses_without_any_device(config, monkeypatch):
     monkeypatch.setattr(
         devices,
         "resolve",
-        lambda mic, speaker: devices.Resolution(None, None, "-", "-", ("nichts da",)),
+        lambda mic, speaker: devices.Resolution((), (), "-", "-", ("nichts da",)),
     )
     messages = []
     recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))

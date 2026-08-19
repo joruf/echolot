@@ -5,13 +5,14 @@ from __future__ import annotations
 import json
 
 from echolot import paths
+from echolot.audio.devices import ALL
 from echolot.config import AUTO, DEFAULTS, Config
 
 
 def test_defaults_are_complete():
     cfg = Config()
     assert cfg.get("audio.format") == "opus"
-    assert cfg.get("devices.mic") == AUTO
+    assert cfg.get("devices.mic") == ALL  # record everything by default
     assert cfg.get("tray.blink") is True
     assert cfg.get("vad.hangover_ms") == 400
 
@@ -140,6 +141,46 @@ def test_validate_normalises_device_values(tmp_path):
     cfg.validate()
     assert cfg.get("devices.mic") == AUTO
     assert cfg.get("devices.speaker") == AUTO
+
+
+def test_both_sides_default_to_recording_everything(tmp_path):
+    """The first attempt has to work without choosing a device."""
+    cfg = Config(path=tmp_path / "settings.json")
+    assert cfg.get("devices.mic") == ALL
+    assert cfg.get("devices.speaker") == ALL
+
+
+def test_an_old_file_is_moved_to_recording_everything(tmp_path):
+    """AUTO in a version-1 file was the old default, not a decision."""
+    target = tmp_path / "settings.json"
+    target.write_text(
+        json.dumps({"version": 1, "devices": {"mic": AUTO, "speaker": AUTO}}), encoding="utf-8"
+    )
+    cfg = Config(path=target).load()
+
+    assert cfg.get("devices.mic") == ALL
+    assert cfg.get("devices.speaker") == ALL
+    assert cfg.needs_migration is True
+
+
+def test_a_hand_picked_device_survives_the_migration(tmp_path):
+    target = tmp_path / "settings.json"
+    target.write_text(
+        json.dumps({"version": 1, "devices": {"mic": "alsa_input.chosen", "speaker": AUTO}}),
+        encoding="utf-8",
+    )
+    cfg = Config(path=target).load()
+
+    assert cfg.get("devices.mic") == "alsa_input.chosen"  # a real choice is kept
+    assert cfg.get("devices.speaker") == ALL
+
+
+def test_a_current_file_is_not_migrated_again(tmp_path):
+    target = tmp_path / "settings.json"
+    Config(path=target).save()
+    again = Config(path=target).load()
+    assert again.needs_migration is False
+    assert again.get("version") == 2
 
 
 def test_recordings_dir_defaults_to_downloads_subfolder(tmp_path):

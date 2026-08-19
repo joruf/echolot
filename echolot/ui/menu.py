@@ -17,6 +17,7 @@ from gi.repository import GLib, Gtk  # noqa: E402
 
 from .. import paths
 from ..audio import devices as devices_module
+from ..audio.devices import ALL
 from ..config import AUTO
 from ..i18n import t
 from ..session import State, format_duration
@@ -163,15 +164,9 @@ class AppMenu:
         submenu = Gtk.Menu()
         sources = devices_module.list_sources()
 
+        submenu.append(self._device_group(t("menu.device_mic"), "mic", sources, monitors=False))
         submenu.append(
-            self._device_group(
-                t("menu.device_mic"), "mic", [d for d in sources if not d.is_monitor]
-            )
-        )
-        submenu.append(
-            self._device_group(
-                t("menu.device_output"), "speaker", [d for d in sources if d.is_monitor]
-            )
+            self._device_group(t("menu.device_output"), "speaker", sources, monitors=True)
         )
         submenu.append(Gtk.SeparatorMenuItem())
 
@@ -191,25 +186,44 @@ class AppMenu:
         item.set_submenu(submenu)
         return item
 
-    def _device_group(self, caption: str, side: str, options: list) -> Gtk.MenuItem:
+    def _device_group(
+        self, caption: str, side: str, sources: list, *, monitors: bool
+    ) -> Gtk.MenuItem:
+        """Everything, the system default, or one device by name.
+
+        Every source is offered for either side, not only the expected kind: when
+        the other side's audio arrives on a real input - a virtual cable, a line
+        in - that has to be selectable.
+        """
         item = Gtk.MenuItem(label=caption)
         submenu = Gtk.Menu()
-        current = self.app.config.get(f"devices.{side}", AUTO)
+        current = self.app.config.get(f"devices.{side}", ALL)
 
-        group: Gtk.RadioMenuItem | None = None
+        everything = Gtk.RadioMenuItem(label=t("devices.all"))
+        everything.set_active(current == ALL)
+        everything.connect("toggled", self._on_device_chosen, side, ALL)
+        submenu.append(everything)
+        group = everything
+
         auto = Gtk.RadioMenuItem(
-            label=t("menu.device_auto") if side == "mic" else t("menu.device_auto_output")
+            label=t("menu.device_auto") if side == "mic" else t("menu.device_auto_output"),
+            group=group,
         )
         auto.set_active(current == AUTO)
         auto.connect("toggled", self._on_device_chosen, side, AUTO)
         submenu.append(auto)
-        group = auto
 
-        for device in options:
-            entry = Gtk.RadioMenuItem(label=shorten(device.label()), group=group)
-            entry.set_active(current == device.name)
-            entry.connect("toggled", self._on_device_chosen, side, device.name)
-            submenu.append(entry)
+        preferred = [d for d in sources if d.is_monitor is monitors]
+        others = [d for d in sources if d.is_monitor is not monitors]
+        for index, block in enumerate((preferred, others)):
+            if not block:
+                continue
+            submenu.append(Gtk.SeparatorMenuItem())
+            for device in block:
+                entry = Gtk.RadioMenuItem(label=shorten(device.label()), group=group)
+                entry.set_active(current == device.name)
+                entry.connect("toggled", self._on_device_chosen, side, device.name)
+                submenu.append(entry)
 
         item.set_submenu(submenu)
         return item

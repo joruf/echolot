@@ -11,6 +11,7 @@ from gi.repository import Gtk  # noqa: E402
 
 from .. import autostart, i18n, paths
 from ..audio import devices as devices_module
+from ..audio.devices import ALL
 from ..config import AUTO, MAX_PREROLL_MINUTES
 from ..i18n import t
 from .menu import shorten
@@ -180,21 +181,10 @@ class SettingsWindow(Gtk.Window):
         grid = Gtk.Grid()
         sources = devices_module.list_sources()
 
-        self.mic_combo = Gtk.ComboBoxText()
-        self.mic_combo.append(AUTO, t("settings.device_auto"))
-        for device in sources:
-            if not device.is_monitor:
-                self.mic_combo.append(device.name, shorten(device.label(), 60))
-        self.mic_combo.set_active_id(self._active_id(self.config.get("devices.mic"), sources))
-
-        self.speaker_combo = Gtk.ComboBoxText()
-        self.speaker_combo.append(AUTO, t("settings.device_auto_output"))
-        for device in sources:
-            if device.is_monitor:
-                self.speaker_combo.append(device.name, shorten(device.label(), 60))
-        self.speaker_combo.set_active_id(
-            self._active_id(self.config.get("devices.speaker"), sources)
-        )
+        # Every source is offered for either side: the other side's audio can
+        # arrive on a real input, for instance through a virtual cable.
+        self.mic_combo = self._device_combo("devices.mic", sources, monitors=False)
+        self.speaker_combo = self._device_combo("devices.speaker", sources, monitors=True)
 
         grid.attach(label(t("settings.device_mic")), 0, 0, 1, 1)
         grid.attach(self.mic_combo, 1, 0, 2, 1)
@@ -206,9 +196,22 @@ class SettingsWindow(Gtk.Window):
         grid.attach(self.follow_check, 0, 2, 3, 1)
         return frame(t("settings.devices"), grid)
 
+    def _device_combo(self, key: str, sources: list, *, monitors: bool) -> Gtk.ComboBoxText:
+        combo = Gtk.ComboBoxText()
+        combo.append(ALL, t("devices.all"))
+        combo.append(
+            AUTO, t("settings.device_auto_output") if monitors else t("settings.device_auto")
+        )
+        for device in sorted(sources, key=lambda d: d.is_monitor is not monitors):
+            combo.append(device.name, shorten(device.label(), 60))
+        combo.set_active_id(self._active_id(self.config.get(key), sources))
+        return combo
+
     def _active_id(self, value, sources) -> str:
-        if value == AUTO or not any(device.name == value for device in sources):
-            return AUTO
+        if value in (ALL, AUTO):
+            return str(value)
+        if not any(device.name == value for device in sources):
+            return ALL
         return str(value)
 
     def _tray_frame(self) -> Gtk.Frame:

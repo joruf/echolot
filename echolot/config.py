@@ -14,13 +14,18 @@ from pathlib import Path
 from typing import Any
 
 from . import i18n, paths
+from .audio.devices import ALL, AUTO as DEVICE_AUTO
 from .audio.mixer import LAYOUT_MIX, LAYOUTS, channels_for
 from .audio.preroll import MAX_MINUTES as MAX_PREROLL_MINUTES
 
-AUTO = "auto"
+AUTO = DEVICE_AUTO
+
+#: Bumped when a stored setting needs to be reinterpreted rather than merely
+#: complemented. See `_migrate`.
+SETTINGS_VERSION = 2
 
 DEFAULTS: dict[str, Any] = {
-    "version": 1,
+    "version": SETTINGS_VERSION,
     # Interface language. English is the default; every file in echolot/locales
     # is offered, so adding a language needs no code change.
     "language": i18n.DEFAULT_LANGUAGE,
@@ -42,9 +47,13 @@ DEFAULTS: dict[str, Any] = {
         "block_ms": 20,
     },
     "devices": {
-        "mic": AUTO,  # AUTO or a PulseAudio/PipeWire source name
-        "speaker": AUTO,  # AUTO means "monitor of the default sink"
-        "follow_default": True,  # switch along when the default device changes
+        # ALL is the default on purpose: record every input and every output
+        # monitor the machine has, so no device choice can be wrong and a source
+        # that only appears sometimes is still captured. AUTO follows the system
+        # default instead, or name one device.
+        "mic": ALL,
+        "speaker": ALL,
+        "follow_default": True,  # take in devices that appear later
     },
     "tray": {
         "blink": True,
@@ -153,6 +162,7 @@ class Config:
                 raise ValueError("settings root is not an object")
             self.data = _deep_merge(DEFAULTS, raw)
             self.needs_migration = bool(set(DEFAULTS_FLAT) - set(_flatten(raw)))
+            self.needs_migration |= self._migrate(int(raw.get("version", 1) or 1))
         except FileNotFoundError:
             self.data = copy.deepcopy(DEFAULTS)
         except (OSError, ValueError) as exc:
@@ -161,6 +171,23 @@ class Config:
             self.data = copy.deepcopy(DEFAULTS)
         self.validate()
         return self
+
+    def _migrate(self, stored_version: int) -> bool:
+        """Reinterpret settings whose meaning changed. True if anything moved.
+
+        Version 2 records every device by default. A file that still says AUTO
+        for a side never chose it - it inherited the old default - so it is moved
+        along; a side naming one device by hand is left alone.
+        """
+        if stored_version >= SETTINGS_VERSION:
+            return False
+        moved = False
+        for key in ("devices.mic", "devices.speaker"):
+            if self.get(key) == DEVICE_AUTO:
+                self.set(key, ALL)
+                moved = True
+        self.set("version", SETTINGS_VERSION)
+        return moved
 
     def save(self) -> None:
         """Atomic write, so a crash mid-save cannot leave a truncated file."""

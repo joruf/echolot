@@ -24,6 +24,7 @@ from typing import Callable
 from . import __build__, __version__, paths
 from .i18n import t
 from .audio import capture, devices
+from .audio.group import SourceGroup
 from .audio import encoder as encoder_module
 from .audio import preroll as preroll_module
 from .audio import watcher as watcher_module
@@ -273,9 +274,12 @@ class Recorder:
                             else {"0": f"{MIC}+{SPEAKER}"}
                         ),
                         "devices": {
-                            MIC: {"name": resolution.mic, "label": resolution.mic_label},
+                            MIC: {
+                                "names": list(resolution.mics),
+                                "label": resolution.mic_label,
+                            },
                             SPEAKER: {
-                                "name": resolution.speaker,
+                                "names": list(resolution.speakers),
                                 "label": resolution.speaker_label,
                             },
                         },
@@ -299,29 +303,19 @@ class Recorder:
             # and recreating them would tear a hole at exactly the moment the user
             # pressed record.
             self._captures = dict(handover.captures) if handover else {}
-            fresh: dict[str, capture.CaptureProcess] = {}
-            for side, device in ((MIC, resolution.mic), (SPEAKER, resolution.speaker)):
-                if not device:
-                    if side not in self._captures:
-                        speech.event("side_unavailable", 0.0, side=side)
-                    continue
+            fresh: dict[str, SourceGroup] = {}
+            for side, wanted in ((MIC, resolution.mics), (SPEAKER, resolution.speakers)):
                 if side in self._captures:
-                    self._captures[side].on_event = self._on_capture_event
+                    self._captures[side].set_on_event(self._on_capture_event)
                     continue
-                process = capture.CaptureProcess(
-                    device,
-                    side=side,
-                    sample_rate=sample_rate,
-                    block_frames=block_frames,
-                    on_event=self._on_capture_event,
-                )
-                try:
-                    process.start()
-                except OSError as exc:
-                    speech.event("source_spawn_failed", 0.0, side=side, error=str(exc))
+                if not wanted:
+                    speech.event("side_unavailable", 0.0, side=side)
                     continue
-                self._captures[side] = process
-                fresh[side] = process
+                group = self._open_side(side, wanted, sample_rate, block_frames, speech)
+                if group is None:
+                    continue
+                self._captures[side] = group
+                fresh[side] = group
 
             # Wait for real audio before starting the timeline, otherwise the
             # capture start-up delay would show up as silence at the front.
@@ -343,16 +337,17 @@ class Recorder:
             # A device that changed while the buffer was filling: switch the
             # inherited process over, gap-free, and let the log say so.
             if handover:
-                for side, device in ((MIC, resolution.mic), (SPEAKER, resolution.speaker)):
-                    process = self._captures.get(side)
-                    if process is not None and device and process.device != device:
-                        speech.event(
-                            "preroll_device_changed",
-                            0.0,
-                            side=side,
-                            **{"from": process.device, "to": device},
-                        )
-                        process.retarget(device)
+                for side, wanted in ((MIC, resolution.mics), (SPEAKER, resolution.speakers)):
+                    group = self._captures.get(side)
+                    if group is None or not wanted or list(wanted) == group.devices:
+                        continue
+                    speech.event(
+                        "preroll_device_changed",
+                        0.0,
+                        side=side,
+                        **{"from": group.devices, "to": list(wanted)},
+                    )
+                    self._align_side(side, group, wanted)
 
             self._encoder = encoder
             self._speechlog = speech
@@ -477,6 +472,64 @@ class Recorder:
             t("session.side_silent_session", sides=labels, duration=format_duration(duration)),
             "warning",
         )
+
+    def _open_side(
+        self, side: str, wanted, sample_rate: int, block_frames: int, speech
+    ) -> SourceGroup | None:
+        """Start one capture per device and present them as one side."""
+        processes = []
+        for device in wanted:
+            process = capture.CaptureProcess(
+                device,
+                side=side,
+                sample_rate=sample_rate,
+                block_frames=block_frames,
+                on_event=self._on_capture_event,
+            )
+            try:
+                process.start()
+            except OSError as exc:
+                if speech is not None:
+                    speech.event(
+                        "source_spawn_failed", 0.0, side=side, device=device, error=str(exc)
+                    )
+                continue
+            processes.append(process)
+        return SourceGroup(processes, block_frames) if processes else None
+
+    def _align_side(self, side: str, group: SourceGroup, wanted) -> None:
+        """Make a running side match the devices it should be recording.
+
+        A single device is switched over gap-free; in "record everything" mode a
+        device that just appeared is taken in alongside the others, because the
+        point is that nothing is missed.
+        """
+        current = group.devices
+        if len(group) == 1 and len(wanted) == 1:
+            if current != list(wanted):
+                group.retarget(wanted[0])
+            return
+
+        config = self.config
+        for device in wanted:
+            if device in current:
+                continue
+            process = capture.CaptureProcess(
+                device,
+                side=side,
+                sample_rate=int(config.get("audio.sample_rate")),
+                block_frames=config.block_frames,
+                on_event=self._on_capture_event,
+            )
+            try:
+                process.start()
+            except OSError:
+                continue
+            group.add(process)
+            if self._speechlog is not None:
+                self._speechlog.event(
+                    "source_added", self.elapsed_seconds, side=side, device=device
+                )
 
     def _flush_preroll(self, handover, encoder, speech, mixer) -> None:
         """Write the buffered audio and its speech metrics, then go live.
@@ -754,10 +807,10 @@ class Recorder:
                 mic=mic_setting,
                 speaker=speaker_setting,
             )
-        for side, device in ((MIC, resolution.mic), (SPEAKER, resolution.speaker)):
-            process = self._captures.get(side)
-            if process is not None and device and process.device != device:
-                process.retarget(device)
+        for side, wanted in ((MIC, resolution.mics), (SPEAKER, resolution.speakers)):
+            group = self._captures.get(side)
+            if group is not None and wanted:
+                self._align_side(side, group, wanted)
 
     # -- callbacks ------------------------------------------------------
 
@@ -783,11 +836,11 @@ class Recorder:
         if not self.active:
             return
         self.resolution = resolution
-        for side, device in ((MIC, resolution.mic), (SPEAKER, resolution.speaker)):
-            process = self._captures.get(side)
-            if process is None or not device or process.device == device:
+        for side, wanted in ((MIC, resolution.mics), (SPEAKER, resolution.speakers)):
+            group = self._captures.get(side)
+            if group is None or not wanted:
                 continue
-            process.retarget(device)
+            self._align_side(side, group, wanted)
 
     def _on_mixer_error(self, message: str) -> None:
         # Called from the mixer thread: stopping from here would join ourselves.

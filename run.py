@@ -75,9 +75,11 @@ def cmd_devices(config: Config) -> int:
     resolution = devices.resolve(config.get("devices.mic"), config.get("devices.speaker"))
     print(t("cli.devices_header"))
     print(t("cli.devices_mic", label=resolution.mic_label))
-    print(f"      {resolution.mic}")
+    for name in resolution.mics:
+        print(f"      {name}")
     print(t("cli.devices_speaker", label=resolution.speaker_label))
-    print(f"      {resolution.speaker}")
+    for name in resolution.speakers:
+        print(f"      {name}")
     for problem in resolution.problems:
         print(f"  ! {problem}")
     print()

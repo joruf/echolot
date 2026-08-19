@@ -60,6 +60,39 @@ def test_resolve_auto_picks_mic_and_monitor(pactl):
     assert resolution.problems == ()
 
 
+def test_all_records_every_device_of_the_matching_kind(pactl):
+    """The default: nothing has to be chosen and nothing is missed."""
+    resolution = devices.resolve(devices.ALL, devices.ALL)
+    assert resolution.mics == (MIC,)
+    assert resolution.speakers == (MONITOR,)
+    assert resolution.complete is True
+    assert resolution.problems == ()
+
+
+def test_all_lists_several_devices_per_side(monkeypatch, pactl):
+    second_mic = "alsa_input.usb-headset"
+    second_monitor = "alsa_output.usb-headset.monitor"
+    answers = dict(pactl)
+    answers[("pactl", "list", "short", "sources")] = (
+        SHORT_SOURCES
+        + f"700\t{second_mic}\tPipeWire\ts16le 2ch 48000Hz\tSUSPENDED\n"
+        + f"701\t{second_monitor}\tPipeWire\ts16le 2ch 48000Hz\tSUSPENDED\n"
+    )
+    monkeypatch.setattr(devices, "_run", lambda args: answers.get(tuple(args), ""))
+
+    resolution = devices.resolve(devices.ALL, devices.ALL)
+    assert set(resolution.mics) == {MIC, second_mic}
+    assert set(resolution.speakers) == {MONITOR, second_monitor}
+    assert "2" in resolution.mic_label  # says how many, not one of them
+
+
+def test_a_real_input_may_be_chosen_for_the_other_side(pactl):
+    """Host audio can arrive on a line in or a virtual cable, not only a monitor."""
+    resolution = devices.resolve(devices.ALL, MIC)
+    assert resolution.speakers == (MIC,)
+    assert resolution.problems == ()
+
+
 def test_resolve_keeps_explicitly_chosen_devices(pactl):
     resolution = devices.resolve(MIC, MONITOR)
     assert (resolution.mic, resolution.speaker) == (MIC, MONITOR)

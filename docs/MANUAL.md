@@ -52,8 +52,10 @@ Quit
   heard.
 * **Level test …** — opens a window with both levels, also when nothing is being recorded. Use it
   *before* a conversation.
-* **Devices** — pick a fixed microphone or output instead of following the system default, and turn
-  the automatic follow on or off. Changing a device works during a recording.
+* **Devices** — by default *All available* on both sides: every input and every output monitor is
+  recorded at once, so nothing has to be chosen and audio on a second output is not missed. Pick one
+  device instead if you prefer; every source is offered for either side, and the change takes effect
+  during a running recording.
 * **Recent recordings** — the last five, each with *Play*, *Open folder*, *Open log*.
 * **Quit** — quits. A running recording is closed properly first.
 

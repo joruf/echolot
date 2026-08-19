@@ -86,6 +86,8 @@
   "session.side_silent_session": "In {duration} Aufnahme kein einziges Wort von {sides}. Dort kam nichts an - prüfe es vor dem nächsten Gespräch mit dem Pegel-Test.",
   "session.preroll_failed": "Vorlauf-Puffer nicht möglich: {error}",
 
+  "devices.several": "{count} Quellen",
+  "devices.all": "Alle verfügbaren (empfohlen)",
   "devices.mic_missing": "Mikrofon '{name}' ist nicht vorhanden, nutze Standardgerät",
   "devices.mic_unusable": "Standard-Mikrofon '{name}' ist nicht aufnehmbar",
   "devices.mic_none": "Kein Mikrofon gefunden",

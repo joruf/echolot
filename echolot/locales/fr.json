@@ -86,6 +86,8 @@
   "session.side_silent_session": "Pas un mot de {sides} en {duration} d'enregistrement. Rien n'y est arrivé - vérifiez-le avec le test de niveau avant la prochaine conversation.",
   "session.preroll_failed": "Tampon de pré-enregistrement impossible : {error}",
 
+  "devices.several": "{count} sources",
+  "devices.all": "Toutes les disponibles (recommandé)",
   "devices.mic_missing": "Le microphone « {name} » est absent, utilisation du périphérique par défaut",
   "devices.mic_unusable": "Le microphone par défaut « {name} » ne peut pas être enregistré",
   "devices.mic_none": "Aucun microphone trouvé",

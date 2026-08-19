@@ -27,6 +27,7 @@ from dataclasses import dataclass, field
 from . import devices
 from . import watcher as watcher_module
 from .capture import CaptureProcess
+from .group import SourceGroup
 from .mixer import LAYOUT_MIX, SIDE_MIC, SIDE_SPEAKER, ChannelMetrics, Mixer, channels_for
 
 MAX_MINUTES = 5
@@ -102,7 +103,7 @@ class Handover:
     """What a starting recording inherits from the pre-roll."""
 
     entries: list[Entry]
-    captures: dict[str, CaptureProcess] = field(default_factory=dict)
+    captures: dict[str, SourceGroup] = field(default_factory=dict)
     resolution: devices.Resolution | None = None
     block_seconds: float = 0.02
 
@@ -123,7 +124,7 @@ class Preroll:
         self.ring: PrerollRing | None = None
         self.resolution: devices.Resolution | None = None
         self.problems: tuple[str, ...] = ()
-        self._captures: dict[str, CaptureProcess] = {}
+        self._captures: dict[str, SourceGroup] = {}
         self._mixer: Mixer | None = None
         self._watcher: watcher_module.DeviceWatcher | None = None
         self._signature: tuple | None = None
@@ -211,22 +212,24 @@ class Preroll:
             blocks = int(self.minutes * 60 / self.block_seconds)
             ring = PrerollRing(blocks)
 
-            captures: dict[str, CaptureProcess] = {}
-            for side, device in ((MIC, resolution.mic), (SPEAKER, resolution.speaker)):
-                if not device:
-                    continue
-                process = CaptureProcess(
-                    device,
-                    side=side,
-                    sample_rate=sample_rate,
-                    block_frames=block_frames,
-                    buffer_seconds=FLUSH_HEADROOM_SECONDS,
-                )
-                try:
-                    process.start()
-                except OSError:
-                    continue
-                captures[side] = process
+            captures: dict[str, SourceGroup] = {}
+            for side, wanted in ((MIC, resolution.mics), (SPEAKER, resolution.speakers)):
+                processes = []
+                for device in wanted:
+                    process = CaptureProcess(
+                        device,
+                        side=side,
+                        sample_rate=sample_rate,
+                        block_frames=block_frames,
+                        buffer_seconds=FLUSH_HEADROOM_SECONDS,
+                    )
+                    try:
+                        process.start()
+                    except OSError:
+                        continue
+                    processes.append(process)
+                if processes:
+                    captures[side] = SourceGroup(processes, block_frames)
 
             if not captures:
                 return False
@@ -322,7 +325,28 @@ class Preroll:
                 return
             self.resolution = resolution
             captures = dict(self._captures)
-        for side, device in ((MIC, resolution.mic), (SPEAKER, resolution.speaker)):
-            process = captures.get(side)
-            if process is not None and device and process.device != device:
-                process.retarget(device)
+        for side, wanted in ((MIC, resolution.mics), (SPEAKER, resolution.speakers)):
+            group = captures.get(side)
+            if group is None or not wanted:
+                continue
+            if len(group) == 1 and len(wanted) == 1:
+                if group.devices != list(wanted):
+                    group.retarget(wanted[0])
+                continue
+            # Recording everything: a device that appeared joins the side rather
+            # than replacing anything.
+            for device in wanted:
+                if device in group.devices:
+                    continue
+                process = CaptureProcess(
+                    device,
+                    side=side,
+                    sample_rate=int(self.config.get("audio.sample_rate")),
+                    block_frames=self.config.block_frames,
+                    buffer_seconds=FLUSH_HEADROOM_SECONDS,
+                )
+                try:
+                    process.start()
+                except OSError:
+                    continue
+                group.add(process)

@@ -22,6 +22,12 @@ from ..i18n import t
 
 PACTL_TIMEOUT = 6
 
+#: Record every device of the matching kind - the default, so that no choice can
+#: be wrong and nothing is missed.
+ALL = "all"
+#: Follow whatever the system default is right now.
+AUTO = "auto"
+
 
 @dataclass(frozen=True)
 class Device:
@@ -38,17 +44,35 @@ class Device:
 
 @dataclass(frozen=True)
 class Resolution:
-    """The concrete devices a session will record from."""
+    """The concrete devices a session will record from.
 
-    mic: str | None
-    speaker: str | None
+    A side can be more than one device: `ALL` records every input and every
+    output monitor the machine has, so no device choice can be wrong and a source
+    that only shows up sometimes is still captured.
+    """
+
+    mics: tuple[str, ...]
+    speakers: tuple[str, ...]
     mic_label: str
     speaker_label: str
     problems: tuple[str, ...] = ()
 
     @property
     def complete(self) -> bool:
-        return bool(self.mic and self.speaker)
+        return bool(self.mics and self.speakers)
+
+    @property
+    def mic(self) -> str | None:
+        """The leading microphone, for everything that names a single device."""
+        return self.mics[0] if self.mics else None
+
+    @property
+    def speaker(self) -> str | None:
+        return self.speakers[0] if self.speakers else None
+
+    @property
+    def devices(self) -> tuple[str, ...]:
+        return self.mics + self.speakers
 
 
 def _run(args: list[str]) -> str:
@@ -163,39 +187,71 @@ def default_monitor(sources: list[Device] | None = None) -> str | None:
 
 
 def resolve(mic_setting: str, speaker_setting: str) -> Resolution:
-    """Turn the configured values ('auto' or a device name) into real devices."""
+    """Turn the configured values into the devices to record from.
+
+    Three kinds of value per side: `ALL` for everything the machine offers,
+    `AUTO` for whatever is the system default right now, or one device by name.
+    """
     sources = list_sources()
     known = {device.name: device for device in sources}
     problems: list[str] = []
 
-    if mic_setting and mic_setting != "auto":
-        mic = mic_setting if mic_setting in known else None
-        if mic is None:
-            problems.append(t("devices.mic_missing", name=mic_setting))
-            mic = default_source()
-    else:
-        mic = default_source()
-    if mic and mic not in known:
-        # A default that is not in the source list would fail at capture time.
-        problems.append(t("devices.mic_unusable", name=mic))
-        mic = next((d.name for d in sources if not d.is_monitor), None)
-    if not mic:
-        problems.append(t("devices.mic_none"))
-
-    if speaker_setting and speaker_setting != "auto":
-        speaker = speaker_setting if speaker_setting in known else None
-        if speaker is None:
-            problems.append(t("devices.output_missing", name=speaker_setting))
-            speaker = default_monitor(sources)
-    else:
-        speaker = default_monitor(sources)
-    if not speaker:
-        problems.append(t("devices.monitor_none"))
+    mics = _resolve_side(mic_setting, sources, known, problems, monitors=False)
+    speakers = _resolve_side(speaker_setting, sources, known, problems, monitors=True)
 
     return Resolution(
-        mic=mic,
-        speaker=speaker,
-        mic_label=known[mic].label() if mic in known else (mic or "-"),
-        speaker_label=known[speaker].label() if speaker in known else (speaker or "-"),
+        mics=tuple(mics),
+        speakers=tuple(speakers),
+        mic_label=_side_label(mics, known),
+        speaker_label=_side_label(speakers, known),
         problems=tuple(problems),
     )
+
+
+def _resolve_side(
+    setting: str,
+    sources: list[Device],
+    known: dict[str, Device],
+    problems: list[str],
+    *,
+    monitors: bool,
+) -> list[str]:
+    """Devices for one side, in the order they should be recorded."""
+    if setting == ALL:
+        # Everything of the matching kind first, then the rest: a machine with no
+        # monitor at all should still record its inputs rather than nothing.
+        wanted = [d.name for d in sources if d.is_monitor is monitors]
+        if wanted:
+            return wanted
+        problems.append(t("devices.monitor_none") if monitors else t("devices.mic_none"))
+        return []
+
+    if setting and setting != AUTO:
+        if setting in known:
+            return [setting]
+        problems.append(
+            t("devices.output_missing", name=setting)
+            if monitors
+            else t("devices.mic_missing", name=setting)
+        )
+
+    chosen = default_monitor(sources) if monitors else default_source()
+    if chosen and chosen not in known:
+        # A default that is not in the source list would fail at capture time.
+        if not monitors:
+            problems.append(t("devices.mic_unusable", name=chosen))
+        chosen = next((d.name for d in sources if d.is_monitor is monitors), None)
+    if not chosen:
+        problems.append(t("devices.monitor_none") if monitors else t("devices.mic_none"))
+        return []
+    return [chosen]
+
+
+def _side_label(names: list[str], known: dict[str, Device]) -> str:
+    """What the user is shown for a side: the device, or how many of them."""
+    if not names:
+        return "-"
+    if len(names) == 1:
+        name = names[0]
+        return known[name].label() if name in known else name
+    return t("devices.several", count=len(names))

@@ -86,6 +86,8 @@
   "session.side_silent_session": "No speech at all from {sides} in {duration} of recording. Nothing arrived there - check it with the level test before the next conversation.",
   "session.preroll_failed": "Pre-roll buffer not possible: {error}",
 
+  "devices.several": "{count} sources",
+  "devices.all": "All available (recommended)",
   "devices.mic_missing": "Microphone '{name}' is not present, using the default device",
   "devices.mic_unusable": "Default microphone '{name}' cannot be recorded",
   "devices.mic_none": "No microphone found",
