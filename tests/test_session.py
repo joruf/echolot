@@ -272,6 +272,35 @@ def test_both_sides_silent_are_named_together(config, tmp_path):
     assert t("common.mic") in warnings[0] and t("common.other") in warnings[0]
 
 
+def test_a_silent_side_is_reported_while_the_conversation_still_runs(config):
+    """The warning that matters: early enough to fix the routing."""
+    messages = []
+    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+
+    recorder._on_silent_side("speaker", 20.0)
+
+    assert messages == [
+        (
+            "warning",
+            t("session.side_no_audio", sides=t("common.other"), duration=format_duration(20.0)),
+        )
+    ]
+    assert "speaker" in recorder._warned_silent_sides
+
+
+def test_the_end_of_recording_warning_does_not_repeat_the_early_one(config, tmp_path):
+    messages = []
+    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    prepare_with_log(
+        recorder, tmp_path, {"mic": 180.0, "speaker": 0.0}, ("mic", "speaker"), duration=1130.0
+    )
+    recorder._warned_silent_sides = {"speaker"}  # already said, during the conversation
+
+    recorder.stop()
+
+    assert [kind for kind, _text in messages] == ["info"]
+
+
 def test_no_warning_when_both_sides_were_heard(config, tmp_path):
     messages = []
     recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))

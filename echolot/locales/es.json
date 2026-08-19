@@ -82,6 +82,7 @@
   "session.encoder_died": "El codificador (ffmpeg) ha terminado la grabación",
   "session.disk_full": "Espacio agotado ({free} MB libres) - grabación detenida",
   "session.disk_warning": "Solo quedan {free} MB - la grabación continúa",
+  "session.side_no_audio": "De {sides} no llega absolutamente nada: silencio total desde {duration}. Si oyes a tu interlocutor, su sonido no llega a este ordenador.",
   "session.side_silent_session": "Ni una palabra de {sides} en {duration} de grabación. Ahí no llegó nada: compruébalo con la prueba de nivel antes de la próxima conversación.",
   "session.preroll_failed": "No es posible el búfer de margen previo: {error}",
 
@@ -137,6 +138,8 @@
   "settings.notify_start": "Aviso al iniciar la grabación",
   "settings.notify_stop": "Aviso al terminar la grabación",
   "settings.notify_error": "Aviso en caso de problemas",
+  "settings.silent_warning": "Avisar de un lado en silencio tras (s, 0 = desactivado)",
+  "settings.silent_warning_hint": "<small>Lo dice durante la conversación cuando un lado no entrega audio alguno,\\nel único momento en que aún se puede corregir el enrutado.</small>",
   "settings.speech": "Detección de voz para el registro",
   "settings.threshold": "Umbral (dB)",
   "settings.min_segment": "Intervención más corta (ms)",

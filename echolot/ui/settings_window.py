@@ -230,6 +230,16 @@ class SettingsWindow(Gtk.Window):
         grid.attach(self.notify_start, 0, 2, 3, 1)
         grid.attach(self.notify_stop, 0, 3, 3, 1)
         grid.attach(self.notify_error, 0, 4, 3, 1)
+
+        self.silent_spin = spin(
+            0, 600, 5, int(self.config.get("warnings.silent_side_seconds"))
+        )
+        grid.attach(label(t("settings.silent_warning")), 0, 5, 2, 1)
+        grid.attach(self.silent_spin, 2, 5, 1, 1)
+
+        hint = Gtk.Label(xalign=0.0)
+        hint.set_markup(t("settings.silent_warning_hint"))
+        grid.attach(hint, 0, 6, 3, 1)
         return frame(t("settings.tray"), grid)
 
     def _speech_frame(self) -> Gtk.Frame:
@@ -334,6 +344,7 @@ class SettingsWindow(Gtk.Window):
                 "notifications.on_start": self.notify_start.get_active(),
                 "notifications.on_stop": self.notify_stop.get_active(),
                 "notifications.on_error": self.notify_error.get_active(),
+                "warnings.silent_side_seconds": int(self.silent_spin.get_value()),
                 "vad.threshold_db": float(self.threshold_spin.get_value()),
                 "vad.min_segment_ms": int(self.min_segment_spin.get_value()),
                 "vad.hangover_ms": int(self.hangover_spin.get_value()),

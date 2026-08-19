@@ -50,6 +50,12 @@ DEFAULTS: dict[str, Any] = {
         "blink": True,
         "blink_interval_ms": 700,
     },
+    "warnings": {
+        # After this many seconds of a side delivering nothing but exact zeros,
+        # say so - while the conversation is still running and still fixable.
+        # 0 turns it off.
+        "silent_side_seconds": 20,
+    },
     "notifications": {
         "on_start": True,
         "on_stop": True,
@@ -76,6 +82,7 @@ _FORMATS = ("opus", "flac", "wav")
 _RANGES: dict[str, tuple[float, float]] = {
     "audio.bitrate_kbps": (16, 512),
     "audio.preroll_minutes": (0, MAX_PREROLL_MINUTES),
+    "warnings.silent_side_seconds": (0, 600),
     "audio.block_ms": (10, 100),
     "tray.blink_interval_ms": (200, 5000),
     "vad.threshold_db": (-90.0, -5.0),
@@ -91,6 +98,7 @@ _INT_KEYS = (
     "audio.bitrate_kbps",
     "audio.preroll_minutes",
     "audio.block_ms",
+    "warnings.silent_side_seconds",
     "audio.sample_rate",
     "tray.blink_interval_ms",
     "vad.min_segment_ms",

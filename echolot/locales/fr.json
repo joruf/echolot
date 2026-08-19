@@ -82,6 +82,7 @@
   "session.encoder_died": "L'encodeur (ffmpeg) a mis fin à l'enregistrement",
   "session.disk_full": "Espace disque épuisé ({free} Mo libres) - enregistrement arrêté",
   "session.disk_warning": "Il ne reste que {free} Mo - l'enregistrement continue",
+  "session.side_no_audio": "Rien n'arrive de {sides} - silence complet depuis {duration}. Si vous entendez votre interlocuteur, son son n'atteint pas cet ordinateur.",
   "session.side_silent_session": "Pas un mot de {sides} en {duration} d'enregistrement. Rien n'y est arrivé - vérifiez-le avec le test de niveau avant la prochaine conversation.",
   "session.preroll_failed": "Tampon de pré-enregistrement impossible : {error}",
 
@@ -137,6 +138,8 @@
   "settings.notify_start": "Message au démarrage de l'enregistrement",
   "settings.notify_stop": "Message à la fin de l'enregistrement",
   "settings.notify_error": "Message en cas de problème",
+  "settings.silent_warning": "Avertir d'un côté muet après (s, 0 = désactivé)",
+  "settings.silent_warning_hint": "<small>Le signale pendant la conversation quand un côté ne fournit aucun son,\\nle seul moment où le routage peut encore être corrigé.</small>",
   "settings.speech": "Détection de la parole pour le journal",
   "settings.threshold": "Seuil (dB)",
   "settings.min_segment": "Intervention la plus courte (ms)",

@@ -24,10 +24,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from .audio.mixer import ChannelMetrics
+from .audio.mixer import SIDE_MIC, SIDE_SPEAKER, ChannelMetrics
 
-MIC = "mic"
-SPEAKER = "speaker"
+#: Re-exported so everything above this layer keeps importing them from here.
+MIC = SIDE_MIC
+SPEAKER = SIDE_SPEAKER
 
 # How far above the measured noise floor a block has to be to count as speech.
 ADAPTIVE_MARGIN_DB = 9.0

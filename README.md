@@ -246,6 +246,7 @@ later version are filled in and written back once — the tray always comes up.
 | `devices.follow_default` | `true` | follow device changes, during a recording too |
 | `tray.blink` | `true` | icon blinks while recording |
 | `tray.blink_interval_ms` | `700` | 200–5000 |
+| `warnings.silent_side_seconds` | `20` | say so **during** the conversation when a side delivers nothing but exact zeros; 0 = off |
 | `notifications.on_start` | `true` | message when a recording starts |
 | `notifications.on_stop` | `true` | message when it ends |
 | `notifications.on_error` | `true` | messages about problems |
@@ -299,6 +300,7 @@ the audio file, so they work directly as playback offsets.
 | `speech` | one utterance: `src` (`mic`/`speaker`), `start`, `end`, `duration`, `peak_db` |
 | `preroll_written` | the buffered lead-up was written, and whether it was `complete` |
 | `recording_started` | the moment record was pressed; everything before it is pre-roll |
+| `side_no_audio` | a side has been delivering nothing but exact zeros - reported while the recording runs |
 | `preroll_device_changed` | the device changed while the buffer was filling |
 | `pause` / `resume` | user paused |
 | `device_change` | routing switched mid-recording |
@@ -334,6 +336,8 @@ label or a missing log line — what cannot is the sentence the other person jus
   not as a failure: the file is playable up to the last written page.
 * **No systray in the panel** — falls back to `XApp.StatusIcon`, then tells you that `--toggle` still
   works.
+* **A side delivers nothing but digital silence** — announced after 20 seconds, during the
+  conversation, because that is when it can still be fixed. Logged as `side_no_audio`.
 
 Only two conditions stop a running recording, both announced and both logged:
 
@@ -449,12 +453,22 @@ Echolot is configured:
 * **A phone call on an actual telephone**, unless it is on speaker in front of the microphone.
 * **A second computer**, obviously.
 
-Two ways to tell in ten seconds:
+You do not have to notice this yourself. A source that exists always carries a noise floor, so
+samples that are **all exactly zero** mean there is no audio stream at all — which is different from
+nobody talking, and is what makes an early warning possible without false alarms. After
+`warnings.silent_side_seconds` (20 s by default) of that, Echolot says so **while the conversation is
+still running**, which is the only moment the routing can still be fixed:
 
-1. During a real conversation, open *Level test …*. The lower bar has to move while you hear the
-   other person. If it stays flat, the audio is not on this machine.
-2. After the recording, Echolot warns by itself when a side stayed silent for the whole session, and
-   the log's last line shows `"speech_seconds": {"mic": 179.7, "speaker": 0.0}`.
+> Nothing at all is arriving from Other side - complete silence for 00:20. If you can hear the other
+> person, their sound is not reaching this computer.
+
+Two more ways to tell:
+
+1. During a conversation, open *Level test …*. The lower bar has to move while you hear the other
+   person. If it stays flat, the audio is not on this machine.
+2. Afterwards, the log's last line shows `"speech_seconds": {"mic": 179.7, "speaker": 0.0}`, and
+   Echolot warns about a side that stayed silent for a whole recording if it had not said so
+   already.
 
 The fix is to move the sound onto this machine — run the call in a browser or app **here** — because
 no setting can capture audio that is not present.

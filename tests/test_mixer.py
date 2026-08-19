@@ -216,6 +216,68 @@ def test_pause_keeps_the_timeline_and_empties_the_buffers():
     assert mixer.paused is False
 
 
+ALERT_AFTER_BLOCKS = 10
+ALERT_SECONDS = ALERT_AFTER_BLOCKS * BLOCK_FRAMES / 48000
+
+
+def alerting_mixer(alerts: list):
+    return make_mixer(
+        silent_alert_seconds=ALERT_SECONDS,
+        on_silent_side=lambda side, seconds: alerts.append((side, seconds)),
+    )
+
+
+def test_a_side_delivering_nothing_but_zeros_is_reported_once():
+    """Exact zeros mean no audio stream at all - that has to be said early."""
+    alerts: list = []
+    mixer = alerting_mixer(alerts)
+    for _ in range(30):
+        mixer._write(block(0), block(0))
+
+    assert [side for side, _ in alerts] == ["mic", "speaker"]  # once each, not 30 times
+    assert all(seconds == pytest.approx(ALERT_SECONDS) for _side, seconds in alerts)
+
+
+def test_a_quiet_but_real_signal_is_not_reported():
+    """A noise floor is not silence: one non-zero sample proves the source lives."""
+    alerts: list = []
+    mixer = alerting_mixer(alerts)
+    for _ in range(9):
+        mixer._write(block(0), block(0))
+    mixer._write(block(0), block(1))  # the faintest possible real sample
+    for _ in range(9):
+        mixer._write(block(0), block(0))
+
+    assert [side for side, _ in alerts] == ["mic"]  # only the side that never delivered
+    assert mixer.zero_blocks["speaker"] == 9
+
+
+def test_filled_in_blocks_neither_trigger_nor_clear_the_alert():
+    """An outage says nothing about the source, so it must not count either way."""
+    alerts: list = []
+    mixer = alerting_mixer(alerts)
+    for _ in range(5):
+        mixer._write(block(0), block(0))
+    for _ in range(50):
+        mixer._write(None, None)
+    assert alerts == []
+
+    for _ in range(5):
+        mixer._write(block(0), block(0))
+    assert len(alerts) == 2  # the streak carried across the outage
+
+
+def test_the_silence_alert_can_be_switched_off():
+    alerts: list = []
+    mixer = make_mixer(
+        silent_alert_seconds=0, on_silent_side=lambda side, seconds: alerts.append(side)
+    )
+    for _ in range(500):
+        mixer._write(block(0), block(0))
+    assert alerts == []
+    assert mixer.zero_blocks["mic"] == 500  # counted, just never announced
+
+
 def test_measure_returns_peak_and_mean_absolute():
     peak, mean_abs = measure(array("h", [100, -300, 200, -200]))
     assert peak == 300

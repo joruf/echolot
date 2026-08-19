@@ -109,6 +109,22 @@ def test_unknown_layout_falls_back_to_the_mix(tmp_path):
     assert cfg.audio_channels == 1
 
 
+def test_silent_side_warning_is_on_by_default(tmp_path):
+    cfg = Config(path=tmp_path / "settings.json")
+    assert cfg.get("warnings.silent_side_seconds") == 20
+
+
+def test_silent_side_warning_is_clamped_and_switchable(tmp_path):
+    cfg = Config(path=tmp_path / "settings.json")
+    cfg.set("warnings.silent_side_seconds", 99999)
+    cfg.validate()
+    assert cfg.get("warnings.silent_side_seconds") == 600
+
+    cfg.set("warnings.silent_side_seconds", 0)  # off is a valid choice
+    cfg.validate()
+    assert cfg.get("warnings.silent_side_seconds") == 0
+
+
 def test_validate_keeps_warning_above_stop_threshold(tmp_path):
     cfg = Config(path=tmp_path / "settings.json")
     cfg.set("disk.warn_mb", 100)

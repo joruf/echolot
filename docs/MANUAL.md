@@ -168,7 +168,7 @@ Same effect as a double click, and it works even if the tray icon is not visible
 | **Recording** | **Tracks** (one mixed track or two separate channels), format (Opus / FLAC / WAV) and bitrate |
 | **Pre-roll** | 0–5 minutes of audio kept in memory, so a recording can start in the past |
 | **Devices** | fixed devices instead of automatic, follow device changes |
-| **Tray and messages** | blinking on/off and its interval, which notifications appear |
+| **Tray and messages** | blinking on/off and its interval, which notifications appear, and after how many seconds a silent side is reported |
 | **Speech detection** | thresholds for the **log** - the audio always contains everything |
 | **Disk space** | warning and stop thresholds |
 
@@ -180,7 +180,7 @@ values are clamped when read, and an unreadable file falls back to the defaults.
 | Symptom | Cause and fix |
 |---------|---------------|
 | No icon in the panel | The systray applet is missing. Right click the panel → *Applets* → enable the notification area applet (*Benachrichtigungsfeld*). Meanwhile `run.py --toggle` still works. |
-| Other side is silent | First check whether the sound plays **on this computer** at all — in a virtual machine, audio from an app on the host never reaches the guest and cannot be recorded. Open *Level test …* during a conversation: the lower bar must move while you hear the person. If it does move, the wrong output is selected: **Devices → Output (other side)**. Echolot also warns on its own when a side stayed silent for a whole recording. |
+| Other side is silent | Echolot says so by itself after 20 seconds if nothing at all arrives. First check whether the sound plays **on this computer** at all — in a virtual machine, audio from an app on the host never reaches the guest and cannot be recorded. Open *Level test …* during a conversation: the lower bar must move while you hear the person. If it does move, the wrong output is selected: **Devices → Output (other side)**. Echolot also warns on its own when a side stayed silent for a whole recording. |
 | Microphone is silent | Check the input in the Mint sound settings, then **Devices → Microphone**. |
 | "Aufnahme beendet" right after starting | Disk full - Echolot stops below 300 MB free. The log's last line says `disk_full`. |
 | Icon shows `!` | The tooltip and the notification say what happened; the log has the matching `source_error` entry. |

@@ -82,6 +82,7 @@
   "session.encoder_died": "The encoder (ffmpeg) ended the recording",
   "session.disk_full": "Disk space exhausted ({free} MB free) - recording stopped",
   "session.disk_warning": "Only {free} MB left - recording continues",
+  "session.side_no_audio": "Nothing at all is arriving from {sides} - complete silence for {duration}. If you can hear the other person, their sound is not reaching this computer.",
   "session.side_silent_session": "No speech at all from {sides} in {duration} of recording. Nothing arrived there - check it with the level test before the next conversation.",
   "session.preroll_failed": "Pre-roll buffer not possible: {error}",
 
@@ -137,6 +138,8 @@
   "settings.notify_start": "Message when recording starts",
   "settings.notify_stop": "Message when recording ends",
   "settings.notify_error": "Message on problems",
+  "settings.silent_warning": "Warn about a silent side after (s, 0 = off)",
+  "settings.silent_warning_hint": "<small>Says so during the conversation when a side delivers no audio at all,\\nwhich is the only moment the routing can still be fixed.</small>",
   "settings.speech": "Speech detection for the log",
   "settings.threshold": "Threshold (dB)",
   "settings.min_segment": "Shortest utterance (ms)",

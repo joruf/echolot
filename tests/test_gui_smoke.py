@@ -94,6 +94,7 @@ def test_settings_window_builds_and_saves(app, config):
     window.format_combo.set_active_id("flac")
     window.layout_combo.set_active_id("split")
     window.preroll_combo.set_active_id("3")
+    window.silent_spin.set_value(45)
     window._on_save(None)
     pump()
 
@@ -103,6 +104,7 @@ def test_settings_window_builds_and_saves(app, config):
     assert config.audio_layout == "split"
     assert config.audio_channels == 2
     assert config.get("audio.preroll_minutes") == 3
+    assert config.get("warnings.silent_side_seconds") == 45
     assert config.path.exists()
     window.destroy()
     pump()

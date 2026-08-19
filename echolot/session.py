@@ -103,6 +103,7 @@ class Recorder:
         self._guard_stop = threading.Event()
         self._guard: threading.Thread | None = None
         self._warned_low_disk = False
+        self._warned_silent_sides: set[str] = set()
 
     # -- state ----------------------------------------------------------
 
@@ -367,8 +368,10 @@ class Recorder:
                 block_frames=block_frames,
                 layout=layout,
                 initial_blocks=handover.blocks if handover else 0,
+                silent_alert_seconds=float(config.get("warnings.silent_side_seconds")),
                 on_metrics=speech.feed,
                 on_error=self._on_mixer_error,
+                on_silent_side=self._on_silent_side,
             )
             self._mixer = mixer
 
@@ -388,6 +391,7 @@ class Recorder:
                 mixer.start()
 
             self._warned_low_disk = False
+            self._warned_silent_sides = set()
             self._guard_stop = threading.Event()
             self._guard = threading.Thread(
                 target=self._disk_guard, name="echolot-disk-guard", daemon=True
@@ -421,6 +425,31 @@ class Recorder:
                 )
             return True
 
+    def _on_silent_side(self, side: str, seconds: float) -> None:
+        """A side has delivered nothing but exact zeros for a while.
+
+        Called from the mixer thread the moment it becomes provable, which is the
+        only moment saying it is worth anything: the conversation is still running
+        and the routing can still be fixed. Told once per side and recording.
+        """
+        self._warned_silent_sides.add(side)
+        if self._speechlog is not None:
+            self._speechlog.event(
+                "side_no_audio",
+                self.elapsed_seconds,
+                side=side,
+                silent_seconds=round(seconds, 1),
+            )
+        self._notify(
+            paths.APP_NAME,
+            t(
+                "session.side_no_audio",
+                sides=t("common.mic") if side == MIC else t("common.other"),
+                duration=format_duration(seconds),
+            ),
+            "warning",
+        )
+
     def _warn_about_silent_sides(self, speech, captures: dict, duration: float) -> None:
         """Say it now if a side never carried a single word.
 
@@ -434,7 +463,9 @@ class Recorder:
         silent = [
             side
             for side in (MIC, SPEAKER)
-            if side in captures and speech.speech_seconds.get(side, 0.0) <= 0.0
+            if side in captures
+            and side not in self._warned_silent_sides  # already said, during the conversation
+            and speech.speech_seconds.get(side, 0.0) <= 0.0
         ]
         if not silent:
             return

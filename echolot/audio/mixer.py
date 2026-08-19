@@ -45,6 +45,11 @@ FOLLOWER_GRACE_SECONDS = 0.1
 CATCHUP_TOLERANCE_SECONDS = 0.2
 FULL_SCALE = 32768.0
 
+#: Canonical side names. Defined here because this is the lowest layer that
+#: knows about the two sides at all; speechlog and preroll import them.
+SIDE_MIC = "mic"
+SIDE_SPEAKER = "speaker"
+
 LAYOUT_MIX = "mix"
 LAYOUT_SPLIT = "split"
 LAYOUTS = (LAYOUT_MIX, LAYOUT_SPLIT)
@@ -110,8 +115,10 @@ class Mixer:
         block_frames: int = 960,
         layout: str = LAYOUT_MIX,
         initial_blocks: int = 0,
+        silent_alert_seconds: float = 0.0,
         on_metrics: Callable[[float, ChannelMetrics, ChannelMetrics], None] | None = None,
         on_error: Callable[[str], None] | None = None,
+        on_silent_side: Callable[[str, float], None] | None = None,
     ) -> None:
         self.mic = mic
         self.speaker = speaker
@@ -123,6 +130,15 @@ class Mixer:
         self.channels = channels_for(self.layout)
         self.on_metrics = on_metrics
         self.on_error = on_error
+        self.on_silent_side = on_silent_side
+
+        # Consecutive blocks in which a side delivered data that was nothing but
+        # exact zeros, per side. Reported once, while the conversation still runs.
+        self.zero_blocks = {SIDE_MIC: 0, SIDE_SPEAKER: 0}
+        self._alert_blocks = (
+            int(silent_alert_seconds / self.block_seconds) if silent_alert_seconds > 0 else 0
+        )
+        self._alerted: set[str] = set()
 
         # Blocks already in the file before this mixer writes anything - the
         # pre-roll. The timeline continues from there, so log timestamps keep
@@ -346,9 +362,41 @@ class Mixer:
         speaker_metrics = ChannelMetrics(speaker_peak, speaker_mav, speaker_present)
         self.last_mic = mic_metrics
         self.last_speaker = speaker_metrics
+        self._watch_for_digital_silence(SIDE_MIC, mic_metrics)
+        self._watch_for_digital_silence(SIDE_SPEAKER, speaker_metrics)
 
         if self.on_metrics is not None:
             self.on_metrics(start_seconds, mic_metrics, speaker_metrics)
+
+    def _watch_for_digital_silence(self, side: str, metrics: ChannelMetrics) -> None:
+        """Notice a side that delivers data consisting of nothing but zeros.
+
+        This is a different thing from nobody talking, and that difference is the
+        whole point: any real source carries a noise floor, so samples that are
+        all exactly zero mean there is no audio stream at all - typically the
+        conversation is playing somewhere this machine cannot see. Reporting that
+        while the conversation is still running is the only moment it helps;
+        afterwards it is merely an explanation.
+
+        Blocks that were filled in carry no information and are skipped, so an
+        outage neither triggers nor clears the alert.
+        """
+        if not metrics.present:
+            return
+        if metrics.peak > 0:
+            self.zero_blocks[side] = 0
+            return
+
+        self.zero_blocks[side] += 1
+        if (
+            not self._alert_blocks
+            or side in self._alerted
+            or self.zero_blocks[side] < self._alert_blocks
+        ):
+            return
+        self._alerted.add(side)
+        if self.on_silent_side is not None:
+            self.on_silent_side(side, self.zero_blocks[side] * self.block_seconds)
 
     def _catch_up(self) -> None:
         """Fill in wall-clock time in which neither side produced any audio.

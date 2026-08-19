@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from . import devices
 from . import watcher as watcher_module
 from .capture import CaptureProcess
-from .mixer import LAYOUT_MIX, ChannelMetrics, Mixer, channels_for
+from .mixer import LAYOUT_MIX, SIDE_MIC, SIDE_SPEAKER, ChannelMetrics, Mixer, channels_for
 
 MAX_MINUTES = 5
 # Room for the live audio to queue while the buffer is being flushed into the
@@ -35,8 +35,8 @@ MAX_MINUTES = 5
 # enough that a slow machine cannot lose the beginning of the conversation.
 FLUSH_HEADROOM_SECONDS = 30.0
 
-MIC = "mic"
-SPEAKER = "speaker"
+MIC = SIDE_MIC
+SPEAKER = SIDE_SPEAKER
 
 Entry = tuple[bytes, ChannelMetrics, ChannelMetrics]
 

@@ -228,6 +228,7 @@ JSON Lines, flushed per line. Times are seconds from the start of the audio file
 | `speech` | src (`mic`/`speaker`), start, end, duration, peak_db | an utterance ended |
 | `preroll_written` | t, blocks, of_blocks, complete | the buffer was written into the file |
 | `recording_started` | t | the moment the user pressed record; everything before is pre-roll |
+| `side_no_audio` | t, side, silent_seconds | a side delivered nothing but exact zeros for that long |
 | `preroll_device_changed` | t, side, from, to | the device changed while the buffer was filling |
 | `pause` / `resume` | t | user paused |
 | `device_change` | t, side, from, to | routing switched mid-recording |
@@ -259,7 +260,8 @@ See [TRANSCRIPT.md](TRANSCRIPT.md) for turning this into a transcript.
 | Language file with gaps | the missing keys answer in English |
 | Second start | signals the running instance instead of opening a second icon (`flock` + PID) |
 | Unwritable log | the audio keeps recording; `SpeechLog.write_error` records why |
-| A side silent for a whole recording | warned about when the recording ends (`SILENT_SIDE_MIN_SECONDS`), because a routing problem found days later is a lost conversation |
+| A side delivering only exact zeros | warned about **during** the recording after `warnings.silent_side_seconds`. All-zero samples mean no audio stream exists at all, which a real source with a noise floor never produces - so this is distinguishable from nobody talking and can be said early, while the routing is still fixable |
+| A side silent for a whole recording | warned about when the recording ends (`SILENT_SIDE_MIN_SECONDS`), unless the early warning already covered that side |
 | No systray | falls back to `XApp.StatusIcon`, then notifies that `--toggle` still works |
 
 ## 9. Languages
