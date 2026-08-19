@@ -194,6 +194,119 @@ def test_encoder_failure_without_a_file_is_an_error(config, tmp_path):
     assert any(kind == "error" and "ffmpeg 1" in text for kind, text in messages)
 
 
+class StubCapture:
+    """Stands in for a CaptureProcess during teardown."""
+
+    total_blocks = 0
+    restarts = 0
+    overruns = 0
+
+    def stop(self, timeout: float = 1.0) -> None:
+        pass
+
+
+class StubSpeechLog:
+    """A finished speech log with known totals."""
+
+    def __init__(self, speech_seconds: dict) -> None:
+        self.speech_seconds = speech_seconds
+        self.closed_with: dict | None = None
+
+    def close(self, **totals) -> None:
+        self.closed_with = totals
+
+    def event(self, *args, **kwargs) -> None:
+        pass
+
+
+def prepare_with_log(recorder, tmp_path, speech_seconds, sides, duration):
+    """A session about to stop, with a known speech balance and length."""
+    prepare_finished_session(recorder, tmp_path, b"x" * 4096, returncode=0)
+    recorder._speechlog = StubSpeechLog(speech_seconds)
+    recorder._captures = {side: StubCapture() for side in sides}
+
+    class StubMixer:
+        seconds_written = duration
+        blocks_written = int(duration * 50)
+        mic_gap_blocks = 0
+        speaker_gap_blocks = 0
+        silence_filled_blocks = 0
+        clipped_blocks = 0
+
+        def stop(self):
+            pass
+
+        def join(self, timeout=None):
+            pass
+
+    recorder._mixer = StubMixer()
+
+
+def test_a_side_that_stayed_silent_all_recording_is_reported(config, tmp_path):
+    """The whole point: never discover an empty other-side track days later."""
+    messages = []
+    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    prepare_with_log(
+        recorder, tmp_path, {"mic": 180.0, "speaker": 0.0}, ("mic", "speaker"), duration=1130.0
+    )
+
+    recorder.stop()
+
+    warnings = [text for kind, text in messages if kind == "warning"]
+    assert len(warnings) == 1
+    assert t("common.other") in warnings[0]
+    assert t("common.mic") not in warnings[0]  # the microphone was fine
+    assert "18:50" in warnings[0]  # and it says how long that went on
+
+
+def test_both_sides_silent_are_named_together(config, tmp_path):
+    messages = []
+    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    prepare_with_log(
+        recorder, tmp_path, {"mic": 0.0, "speaker": 0.0}, ("mic", "speaker"), duration=600.0
+    )
+
+    recorder.stop()
+    warnings = [text for kind, text in messages if kind == "warning"]
+    assert len(warnings) == 1
+    assert t("common.mic") in warnings[0] and t("common.other") in warnings[0]
+
+
+def test_no_warning_when_both_sides_were_heard(config, tmp_path):
+    messages = []
+    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    prepare_with_log(
+        recorder, tmp_path, {"mic": 12.0, "speaker": 400.0}, ("mic", "speaker"), duration=900.0
+    )
+
+    recorder.stop()
+    assert [kind for kind, _text in messages] == ["info"]
+
+
+def test_no_warning_for_a_short_recording(config, tmp_path):
+    """Ten seconds of silence proves nothing and must not nag."""
+    messages = []
+    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    prepare_with_log(
+        recorder, tmp_path, {"mic": 0.0, "speaker": 0.0}, ("mic", "speaker"), duration=10.0
+    )
+
+    recorder.stop()
+    assert [kind for kind, _text in messages] == ["info"]
+
+
+def test_a_side_without_a_device_is_not_blamed(config, tmp_path):
+    """No microphone at all is already reported at start; not again at the end."""
+    messages = []
+    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    prepare_with_log(
+        recorder, tmp_path, {"mic": 0.0, "speaker": 300.0}, ("speaker",), duration=900.0
+    )
+
+    recorder.stop()
+    assert [kind for kind, _text in messages] == ["info"]
+
+
 def test_clean_stop_reports_duration_and_size(config, tmp_path):
     messages = []
     recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))

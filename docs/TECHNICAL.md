@@ -259,6 +259,7 @@ See [TRANSCRIPT.md](TRANSCRIPT.md) for turning this into a transcript.
 | Language file with gaps | the missing keys answer in English |
 | Second start | signals the running instance instead of opening a second icon (`flock` + PID) |
 | Unwritable log | the audio keeps recording; `SpeechLog.write_error` records why |
+| A side silent for a whole recording | warned about when the recording ends (`SILENT_SIDE_MIN_SECONDS`), because a routing problem found days later is a lost conversation |
 | No systray | falls back to `XApp.StatusIcon`, then notifies that `--toggle` still works |
 
 ## 9. Languages

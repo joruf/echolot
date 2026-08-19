@@ -55,7 +55,7 @@ if __name__ == "__main__":
         raise SystemExit(1)
 
 
-from echolot import __version__, paths  # noqa: E402
+from echolot import VERSION_LABEL, paths  # noqa: E402
 from echolot.config import Config  # noqa: E402
 from echolot.i18n import t  # noqa: E402
 
@@ -93,7 +93,7 @@ def cmd_check(config: Config) -> int:
     from echolot.audio import encoder as encoder_module
     from echolot.session import Recorder, free_megabytes
 
-    print(f"{paths.APP_NAME} {__version__}")
+    print(f"{paths.APP_NAME} {VERSION_LABEL}")
     print(t("cli.check_ffmpeg", version=encoder_module.probe_available() or t("cli.check_missing")))
     print(
         t(
@@ -209,7 +209,9 @@ def main(argv: list[str] | None = None) -> int:
     config = load_config()
 
     parser = argparse.ArgumentParser(prog=paths.APP_ID, description=t("cli.description"))
-    parser.add_argument("--version", action="version", version=f"{paths.APP_NAME} {__version__}")
+    parser.add_argument(
+        "--version", action="version", version=f"{paths.APP_NAME} {VERSION_LABEL}"
+    )
     parser.add_argument("--autostart", action="store_true", help=t("cli.help_autostart"))
     parser.add_argument("--toggle", action="store_true", help=t("cli.help_toggle"))
     parser.add_argument("--quit", action="store_true", help=t("cli.help_quit"))

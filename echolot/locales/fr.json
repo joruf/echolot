@@ -82,6 +82,7 @@
   "session.encoder_died": "L'encodeur (ffmpeg) a mis fin à l'enregistrement",
   "session.disk_full": "Espace disque épuisé ({free} Mo libres) - enregistrement arrêté",
   "session.disk_warning": "Il ne reste que {free} Mo - l'enregistrement continue",
+  "session.side_silent_session": "Pas un mot de {sides} en {duration} d'enregistrement. Rien n'y est arrivé - vérifiez-le avec le test de niveau avant la prochaine conversation.",
   "session.preroll_failed": "Tampon de pré-enregistrement impossible : {error}",
 
   "devices.mic_missing": "Le microphone « {name} » est absent, utilisation du périphérique par défaut",

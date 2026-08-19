@@ -428,13 +428,36 @@ Everything that needs real audio and a real panel is a manual checklist in
 | Symptom | Cause and fix |
 |---------|---------------|
 | No icon in the panel | The systray applet is missing: right click the panel → *Applets* → enable the notification area applet. `run.py --toggle` works meanwhile. |
-| The other side is silent | Wrong output picked. *Devices → Output (other side)*: choose the monitor of the device you actually listen through, then run the level test. The log confirms it — `speech_seconds` is `0.0` for that side. |
+| The other side is silent | First: is the audio playing **on this computer** at all? See below. If it is, the wrong output is picked — *Devices → Output (other side)*: choose the monitor of the device you actually listen through, then run the level test. The log confirms either case: `speech_seconds` is `0.0` for that side, and Echolot now warns about it right when the recording ends. |
 | The microphone is silent | Check the input in the Mint sound settings, then *Devices → Microphone*. |
 | "Recording finished" right after starting | Disk full; Echolot stops below `disk.stop_mb`. The log's last line says `disk_full`. |
 | Icon shows `!` | The tooltip and the notification say what happened, and the log has the matching `source_error`. |
 | Recording sounds out of sync | Check `gap_blocks` in the log's last line: each one is 20 ms of silence that had to be filled in for that side. |
 | Pre-roll shorter than expected | The buffer only holds what it has had time to collect; after login or after a recording it starts empty. The menu shows how much is in it. |
 | Interface in the wrong language | *Settings → Language*, or `"language"` in the settings file. |
+
+### Echolot can only record what this computer plays
+
+The other side is captured from the **monitor of this machine's output** — a tap on what the sound
+server here is playing. Anything that never passes through it cannot be recorded, no matter how
+Echolot is configured:
+
+* **In a virtual machine**, only what plays *inside* the VM. A meeting app running on the host, or a
+  headset attached to the host, never reaches the guest's sound card. The microphone can still work
+  (the host forwards it), which makes the recording look half-broken: your voice is there, the other
+  side is not.
+* **A phone call on an actual telephone**, unless it is on speaker in front of the microphone.
+* **A second computer**, obviously.
+
+Two ways to tell in ten seconds:
+
+1. During a real conversation, open *Level test …*. The lower bar has to move while you hear the
+   other person. If it stays flat, the audio is not on this machine.
+2. After the recording, Echolot warns by itself when a side stayed silent for the whole session, and
+   the log's last line shows `"speech_seconds": {"mic": 179.7, "speaker": 0.0}`.
+
+The fix is to move the sound onto this machine — run the call in a browser or app **here** — because
+no setting can capture audio that is not present.
 
 ## 16. Known limits
 

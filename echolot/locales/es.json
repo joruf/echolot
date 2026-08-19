@@ -82,6 +82,7 @@
   "session.encoder_died": "El codificador (ffmpeg) ha terminado la grabación",
   "session.disk_full": "Espacio agotado ({free} MB libres) - grabación detenida",
   "session.disk_warning": "Solo quedan {free} MB - la grabación continúa",
+  "session.side_silent_session": "Ni una palabra de {sides} en {duration} de grabación. Ahí no llegó nada: compruébalo con la prueba de nivel antes de la próxima conversación.",
   "session.preroll_failed": "No es posible el búfer de margen previo: {error}",
 
   "devices.mic_missing": "El micrófono «{name}» no está disponible, se usa el dispositivo predeterminado",

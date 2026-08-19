@@ -1,8 +1,14 @@
 """Echolot - conversation recorder that lives in the system tray.
 
-Records both sides of a conversation into one file with two discrete channels
-(left: your microphone, right: what came out of the speakers) plus a JSON Lines
-log that says who spoke when, so a transcript can be generated later.
+Records your microphone and the other side of the conversation together, plus a
+JSON Lines log that says who spoke when, so a transcript can be generated later.
 """
 
-__version__ = "1.0.0"
+#: Semantic version. Middle digit for a new capability, last one for fixes,
+#: documentation and tests, first one for a break in how it is operated.
+__version__ = "1.1.0"
+#: Counter over every change ever shipped, never reset. Answers "is this
+#: yesterday's state?", which the semantic number cannot.
+__build__ = 4
+#: What the user is shown and what goes into a bug report.
+VERSION_LABEL = f"{__version__} ({__build__})"

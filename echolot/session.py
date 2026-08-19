@@ -21,7 +21,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Callable
 
-from . import __version__, paths
+from . import __build__, __version__, paths
 from .i18n import t
 from .audio import capture, devices
 from .audio import encoder as encoder_module
@@ -35,6 +35,9 @@ MIXER_JOIN_TIMEOUT = 5.0
 # A pre-roll flush aborts as soon as the mixer is stopped, so this only has to
 # cover the block that was already being written.
 FLUSH_JOIN_TIMEOUT = 5.0
+# Below this length a recording is too short to conclude anything from a silent
+# side; above it, silence for the whole session is a routing problem.
+SILENT_SIDE_MIN_SECONDS = 30.0
 
 
 class State(str, Enum):
@@ -248,6 +251,7 @@ class Recorder:
                     {
                         "app": paths.APP_NAME,
                         "version": __version__,
+                        "build": __build__,
                         "started_at": started_at.astimezone().isoformat(timespec="seconds"),
                         "audio": audio_path.name,
                         "log": log_path.name,
@@ -417,6 +421,32 @@ class Recorder:
                 )
             return True
 
+    def _warn_about_silent_sides(self, speech, captures: dict, duration: float) -> None:
+        """Say it now if a side never carried a single word.
+
+        A whole conversation with nothing on the other side's track is not a
+        subtlety to be found in the log next week - it means the audio never
+        reached this machine, and the recording is half worthless. The one thing
+        worse than that happening is not being told.
+        """
+        if duration < SILENT_SIDE_MIN_SECONDS:
+            return
+        silent = [
+            side
+            for side in (MIC, SPEAKER)
+            if side in captures and speech.speech_seconds.get(side, 0.0) <= 0.0
+        ]
+        if not silent:
+            return
+        labels = " + ".join(
+            t("common.mic") if side == MIC else t("common.other") for side in silent
+        )
+        self._notify(
+            paths.APP_NAME,
+            t("session.side_silent_session", sides=labels, duration=format_duration(duration)),
+            "warning",
+        )
+
     def _flush_preroll(self, handover, encoder, speech, mixer) -> None:
         """Write the buffered audio and its speech metrics, then go live.
 
@@ -520,6 +550,9 @@ class Recorder:
                 speech.close(**totals)
 
             duration = mixer.seconds_written if mixer is not None else 0.0
+            if speech is not None:
+                self._warn_about_silent_sides(speech, captures, duration)
+
             size = 0
             if files is not None:
                 try:

@@ -82,6 +82,7 @@
   "session.encoder_died": "Der Encoder (ffmpeg) hat die Aufnahme beendet",
   "session.disk_full": "Speicherplatz erschöpft ({free} MB frei) - Aufnahme beendet",
   "session.disk_warning": "Nur noch {free} MB frei - Aufnahme läuft weiter",
+  "session.side_silent_session": "In {duration} Aufnahme kein einziges Wort von {sides}. Dort kam nichts an - prüfe es vor dem nächsten Gespräch mit dem Pegel-Test.",
   "session.preroll_failed": "Vorlauf-Puffer nicht möglich: {error}",
 
   "devices.mic_missing": "Mikrofon '{name}' ist nicht vorhanden, nutze Standardgerät",
