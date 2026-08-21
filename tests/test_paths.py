@@ -84,3 +84,11 @@ def test_list_recordings_survives_missing_directory(tmp_path):
 
 def test_default_recordings_dir_is_downloads_subfolder():
     assert paths.default_recordings_dir().name == paths.APP_NAME
+
+
+def test_install_theme_icon_copies_idle_svg(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
+    dest = paths.install_theme_icon()
+    assert dest == tmp_path / "icons" / "hicolor" / "scalable" / "apps" / "echolot.svg"
+    assert dest.is_file()
+    assert dest.read_bytes() == paths.icon_file("idle").read_bytes()

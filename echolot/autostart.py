@@ -27,8 +27,9 @@ def exec_command(autostart: bool = True) -> str:
 
 
 def icon_path() -> str:
-    icon = paths.icon_file("idle")
-    return str(icon) if icon.exists() else "media-record"
+    """Theme name for the desktop entry, after installing the idle SVG into hicolor."""
+    paths.install_theme_icon()
+    return paths.theme_icon_name()
 
 
 def comment_lines() -> list[str]:

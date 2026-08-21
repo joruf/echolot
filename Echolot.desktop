@@ -1,12 +1,14 @@
 [Desktop Entry]
+Version=1.0
 Type=Application
 Name=Echolot
 Comment=Record conversations from the system tray
 Comment[de]=Gesprächsmitschnitt aus der System-Tray
 Comment[es]=Graba conversaciones desde el área de notificación
 Comment[fr]=Enregistre les conversations depuis la zone de notification
-Exec=python3 "/home/joruf/Applications/echolot/run.py"
-Icon=/home/joruf/Applications/echolot/resources/echolot-idle.svg
+# %k is this .desktop file, so ./run.py is always the one in the same folder.
+Exec=/bin/bash -c "cd \\$(dirname \\$(readlink -f \\$0)) && exec python3 ./run.py" %k
+Icon=echolot
 Terminal=false
 StartupNotify=false
 StartupWMClass=echolot

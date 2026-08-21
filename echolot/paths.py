@@ -140,6 +140,42 @@ def icon_file(name: str) -> Path:
     return RESOURCES_DIR / f"{APP_ID}-{name}.svg"
 
 
+def theme_icon_name() -> str:
+    """Icon theme name used by the ``.desktop`` entry.
+
+    The desktop spec accepts a theme name or an absolute path, not a file next to
+    the entry, so the idle SVG is installed as ``echolot`` under hicolor.
+    """
+    return APP_ID
+
+
+def icons_dir() -> Path:
+    """User hicolor theme, honouring ``XDG_DATA_HOME``."""
+    return _xdg_dir("XDG_DATA_HOME", Path.home() / ".local" / "share") / "icons" / "hicolor"
+
+
+def install_theme_icon() -> Path:
+    """Copy the idle SVG into the icon theme as ``echolot``.
+
+    :return: Destination path of the installed SVG.
+    """
+    dest_dir = icons_dir() / "scalable" / "apps"
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / f"{APP_ID}.svg"
+    src = icon_file("idle")
+    if src.is_file():
+        shutil.copy2(src, dest)
+    cache = shutil.which("gtk-update-icon-cache")
+    if cache:
+        subprocess.run(
+            [cache, "-f", "-t", str(icons_dir())],
+            capture_output=True,
+            check=False,
+            timeout=10,
+        )
+    return dest
+
+
 @dataclass(frozen=True)
 class Recording:
     """One finished (or currently running) conversation on disk."""

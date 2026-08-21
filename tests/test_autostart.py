@@ -12,6 +12,7 @@ def test_entry_starts_run_py_in_autostart_mode():
     assert "--autostart" in text
     assert f"Name={paths.APP_NAME}" in text
     assert "Terminal=false" in text
+    assert f"Icon={paths.theme_icon_name()}" in text
 
 
 def test_enable_creates_the_file_and_disable_removes_it():
