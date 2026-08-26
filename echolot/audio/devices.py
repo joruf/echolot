@@ -226,6 +226,21 @@ def _resolve_side(
         problems.append(t("devices.monitor_none") if monitors else t("devices.mic_none"))
         return []
 
+    if isinstance(setting, (list, tuple)):
+        # An explicit selection, ticked by hand in the levels dialog. Devices that
+        # have since disappeared are named rather than silently dropped.
+        wanted = [name for name in setting if name in known]
+        for name in setting:
+            if name not in known:
+                problems.append(
+                    t("devices.output_missing", name=name)
+                    if monitors
+                    else t("devices.mic_missing", name=name)
+                )
+        if not wanted:
+            problems.append(t("devices.monitor_none") if monitors else t("devices.mic_none"))
+        return wanted
+
     if setting and setting != AUTO:
         if setting in known:
             return [setting]

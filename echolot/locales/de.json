@@ -1,10 +1,8 @@
 {
   "_label": "Deutsch",
-
   "common.you": "Du",
   "common.other": "Gegenüber",
   "common.mic": "Mikrofon",
-  "common.output": "Ausgabe",
   "common.other_track": "Gegenüber-Spur",
   "common.decimal_separator": ",",
   "common.none": "---",
@@ -13,18 +11,15 @@
   "common.cancel": "Abbrechen",
   "common.save": "Speichern",
   "common.choose": "Wählen …",
-
   "state.idle": "Bereit",
   "state.recording": "Aufnahme läuft",
   "state.paused": "Angehalten",
   "state.error": "Störung",
-
   "menu.header": "Echolot – {state}",
   "menu.start": "Aufnahme starten (Doppelklick)",
   "menu.stop": "Aufnahme beenden",
   "menu.pause": "Pause",
   "menu.resume": "Fortsetzen",
-  "menu.level_test": "Pegel-Test …",
   "menu.devices": "Geräte",
   "menu.device_mic": "Mikrofon (du)",
   "menu.device_output": "Ausgabe (Gegenüber)",
@@ -39,7 +34,6 @@
   "menu.open_log": "Log öffnen",
   "menu.settings": "Einstellungen …",
   "menu.quit": "Beenden",
-
   "tooltip.hint": "Doppelklick startet die Aufnahme",
   "tooltip.levels": "Du {mic} dB · Gegenüber {speaker} dB",
   "tooltip.mic": "Mikro: {label}",
@@ -48,7 +42,6 @@
   "tooltip.last_result": "Zuletzt: {result}",
   "tooltip.free": "Frei: {size}",
   "tooltip.preroll": "Vorlauf: {buffered} von {total} gepuffert",
-
   "app.already_running": "Echolot läuft bereits.",
   "app.already_running_locked": "Echolot läuft bereits (Sperre belegt).",
   "app.running_title": "Echolot läuft",
@@ -59,7 +52,6 @@
   "app.no_tray": "Das Icon konnte nicht in die Systemleiste eingebettet werden.\nAktiviere im Panel das Applet „Benachrichtigungsfeld“.\nDie Aufnahme lässt sich weiter mit „run.py --toggle“ schalten.",
   "app.folder_failed": "Ordner nicht anlegbar: {error}",
   "app.open_failed": "Öffnen fehlgeschlagen: {error}",
-
   "session.ffmpeg_missing": "ffmpeg fehlt - ohne es kann nicht aufgezeichnet werden",
   "session.ffmpeg_missing_short": "ffmpeg fehlt - Aufnahme nicht möglich",
   "session.parec_missing": "parec fehlt (Paket pulseaudio-utils)",
@@ -82,10 +74,11 @@
   "session.encoder_died": "Der Encoder (ffmpeg) hat die Aufnahme beendet",
   "session.disk_full": "Speicherplatz erschöpft ({free} MB frei) - Aufnahme beendet",
   "session.disk_warning": "Nur noch {free} MB frei - Aufnahme läuft weiter",
+  "session.side_no_audio_vm": "Von {sides} kommt überhaupt nichts an - seit {duration} vollkommene Stille. Du nimmst in einem {hypervisor}-Gast auf, und Ton, der auf dem Host läuft, ist hier nicht aufnehmbar. Führe das Gespräch in dieser virtuellen Maschine, oder leite die Host-Ausgabe in den Audio-Eingang der virtuellen Maschine.",
+  "tooltip.no_audio": "ACHTUNG: von {side} kommt nichts an",
   "session.side_no_audio": "Von {sides} kommt überhaupt nichts an - seit {duration} vollkommene Stille. Wenn du dein Gegenüber hörst, erreicht dessen Ton diesen Rechner nicht.",
   "session.side_silent_session": "In {duration} Aufnahme kein einziges Wort von {sides}. Dort kam nichts an - prüfe es vor dem nächsten Gespräch mit dem Pegel-Test.",
   "session.preroll_failed": "Vorlauf-Puffer nicht möglich: {error}",
-
   "devices.several": "{count} Quellen",
   "devices.all": "Alle verfügbaren (empfohlen)",
   "devices.mic_missing": "Mikrofon '{name}' ist nicht vorhanden, nutze Standardgerät",
@@ -93,13 +86,6 @@
   "devices.mic_none": "Kein Mikrofon gefunden",
   "devices.output_missing": "Ausgabe '{name}' ist nicht vorhanden, nutze Standardgerät",
   "devices.monitor_none": "Keine Ausgabe-Aufnahme (Monitor) gefunden",
-
-  "level.title": "Echolot - Pegel-Test",
-  "level.heading": "<b>Beide Balken müssen sich bewegen.</b>\nSprich ins Mikrofon und spiele gleichzeitig etwas ab.",
-  "level.running": "Zeigt die Pegel der laufenden Aufnahme.",
-  "level.no_device": "<b>Kein Gerät für: {sides}</b>",
-  "level.local_only": "Der Test läuft nur in diesem Fenster, nichts wird gespeichert.",
-
   "settings.title": "Echolot - Einstellungen",
   "settings.storage": "Ablage",
   "settings.folder": "Ordner",
@@ -153,7 +139,6 @@
   "settings.stop_below": "Aufnahme beenden unter (MB frei)",
   "settings.check_interval": "Prüfabstand (s)",
   "settings.save_failed": "Einstellungen konnten nicht gespeichert werden",
-
   "cli.description": "Echolot - Gesprächsmitschnitt aus der System-Tray",
   "cli.help_autostart": "vom Login gestartet (keine Startmeldung)",
   "cli.help_toggle": "Aufnahme starten oder beenden",
@@ -185,6 +170,17 @@
   "cli.record_levels": "  {elapsed}  Du {mic} dB   Gegenüber {speaker} dB   ",
   "cli.record_audio": "Audio: {path}",
   "cli.record_log": "Log:   {path}",
-
-  "desktop.comment": "Gesprächsmitschnitt aus der System-Tray"
+  "desktop.comment": "Gesprächsmitschnitt aus der System-Tray",
+  "levels.title": "Echolot - Pegel und Geräte",
+  "levels.heading": "<b>Setze Haken bei den Geräten, die aufgezeichnet werden sollen.</b>\nDie Balken zeigen live, was gerade an jedem Gerät anliegt.",
+  "levels.group_inputs": "Eingänge",
+  "levels.group_inputs_hint": "Mikrofone und Line-Eingänge - normalerweise deine Seite (Kanal L).",
+  "levels.group_outputs": "Ausgänge",
+  "levels.group_outputs_hint": "Mitschnitt der Wiedergabe - normalerweise die Gegenseite (Kanal R).",
+  "levels.use_all": "Alle verfügbaren automatisch verwenden",
+  "levels.nothing_selected": "<b>Nichts ausgewählt - diese Seite wird nicht aufgezeichnet.</b>",
+  "levels.rescan": "Geräte neu einlesen",
+  "levels.footer": "Änderungen wirken sofort, auch während einer laufenden Aufnahme.",
+  "levels.probe_failed": "<b>Kein Pegel von: {names}</b>",
+  "menu.levels": "Pegel und Geräte..."
 }

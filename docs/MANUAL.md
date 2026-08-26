@@ -36,7 +36,7 @@ Pause
 ──────────────────────────────────
 You         ▮▮▮▮▮▯▯▯▯▯▯▯    -28 dB
 Other side  ▮▮▮▮▮▮▮▯▯▯▯▯    -19 dB
-Level test …
+Levels and devices …
 ──────────────────────────────────
 Devices                       ▸
 Recent recordings             ▸
@@ -50,8 +50,16 @@ Quit
   recording; it is noted in the log as `pause` / `resume`.
 * **Level rows** — update live while the menu is open. Two moving bars mean both sides are being
   heard.
-* **Level test …** — opens a window with both levels, also when nothing is being recorded. Use it
+* **Levels and devices …** — one window with a live bar for **every** input and every output, each
+  with a tick that decides whether it is recorded. Changes apply at once, during a recording too.
+  Use it
   *before* a conversation.
+* **In a virtual machine** — if the other side stays silent, Echolot tells you after 20 seconds and
+  says why: audio playing on the **host** never reaches the guest. Either hold the conversation
+  inside the virtual machine, or route the host output into the virtual machine's audio input
+  (on Windows: *Stereo Mix* or a virtual cable, selected as the VM's sound input). See the README
+  for the exact steps.
+
 * **Devices** — by default *All available* on both sides: every input and every output monitor is
   recorded at once, so nothing has to be chosen and audio on a second output is not missed. Pick one
   device instead if you prefer; every source is offered for either side, and the change takes effect
@@ -143,7 +151,7 @@ lead-up available too.
 
 ## 5. Before an important conversation
 
-1. Right click → **Level test …**
+1. Right click → **Levels and devices …**
 2. Say something - the upper bar has to move.
 3. Play anything, e.g. a video - the lower bar has to move.
 4. Close the window, double click the icon, and talk.
@@ -182,7 +190,7 @@ values are clamped when read, and an unreadable file falls back to the defaults.
 | Symptom | Cause and fix |
 |---------|---------------|
 | No icon in the panel | The systray applet is missing. Right click the panel → *Applets* → enable the notification area applet (*Benachrichtigungsfeld*). Meanwhile `run.py --toggle` still works. |
-| Other side is silent | Echolot says so by itself after 20 seconds if nothing at all arrives. First check whether the sound plays **on this computer** at all — in a virtual machine, audio from an app on the host never reaches the guest and cannot be recorded. Open *Level test …* during a conversation: the lower bar must move while you hear the person. If it does move, the wrong output is selected: **Devices → Output (other side)**. Echolot also warns on its own when a side stayed silent for a whole recording. |
+| Other side is silent | Echolot says so by itself after 20 seconds if nothing at all arrives. First check whether the sound plays **on this computer** at all — in a virtual machine, audio from an app on the host never reaches the guest and cannot be recorded. Open *Levels and devices …* during a conversation and watch which output bar moves while you hear the person; tick exactly that device. Echolot also warns on its own when a side stayed silent for a whole recording. |
 | Microphone is silent | Check the input in the Mint sound settings, then **Devices → Microphone**. |
 | "Aufnahme beendet" right after starting | Disk full - Echolot stops below 300 MB free. The log's last line says `disk_full`. |
 | Icon shows `!` | The tooltip and the notification say what happened; the log has the matching `source_error` entry. |

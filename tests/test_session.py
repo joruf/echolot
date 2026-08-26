@@ -41,7 +41,7 @@ def test_preflight_reports_missing_parec(config, monkeypatch):
 def test_start_refuses_without_ffmpeg_and_says_so(config, monkeypatch):
     monkeypatch.setattr(encoder_module, "probe_available", lambda: None)
     messages = []
-    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    recorder = Recorder(config, on_notify=lambda title, text, kind, urgent=False: messages.append((kind, text)))
 
     assert recorder.start() is False
     assert recorder.state is State.IDLE
@@ -55,7 +55,7 @@ def test_start_refuses_when_the_disk_is_full(config, monkeypatch):
     config.set("disk.stop_mb", 300)
 
     messages = []
-    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    recorder = Recorder(config, on_notify=lambda title, text, kind, urgent=False: messages.append((kind, text)))
     assert recorder.start() is False
     # Compared against the catalogue, so the test does not depend on a language.
     assert any(
@@ -74,7 +74,7 @@ def test_start_refuses_without_any_device(config, monkeypatch):
         lambda mic, speaker: devices.Resolution((), (), "-", "-", ("nichts da",)),
     )
     messages = []
-    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    recorder = Recorder(config, on_notify=lambda title, text, kind, urgent=False: messages.append((kind, text)))
     assert recorder.start() is False
     assert any(text == t("session.no_devices") for _kind, text in messages)
 
@@ -96,7 +96,7 @@ def test_disk_guard_stops_the_recording_when_space_runs_out(config, monkeypatch)
     config.set("disk.check_interval_s", 1)
 
     messages = []
-    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    recorder = Recorder(config, on_notify=lambda title, text, kind, urgent=False: messages.append((kind, text)))
     recorder._state = State.RECORDING  # a session without a real pipeline behind it
 
     guard = threading.Thread(target=recorder._disk_guard, daemon=True)
@@ -117,7 +117,7 @@ def test_disk_guard_warns_once_before_stopping(config, monkeypatch):
     config.set("disk.check_interval_s", 1)
 
     messages = []
-    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    recorder = Recorder(config, on_notify=lambda title, text, kind, urgent=False: messages.append((kind, text)))
     recorder._state = State.RECORDING
 
     guard = threading.Thread(target=recorder._disk_guard, daemon=True)
@@ -165,7 +165,7 @@ def prepare_finished_session(recorder, tmp_path, audio_bytes: bytes, returncode:
 def test_encoder_killed_by_a_signal_is_a_warning_when_the_file_is_usable(config, tmp_path):
     """Logging out kills ffmpeg too; that must not discredit a good recording."""
     messages = []
-    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    recorder = Recorder(config, on_notify=lambda title, text, kind, urgent=False: messages.append((kind, text)))
     prepare_finished_session(recorder, tmp_path, b"x" * 4096, returncode=255)
 
     assert recorder.stop(reason="quit") is True
@@ -186,7 +186,7 @@ def test_encoder_killed_by_a_signal_is_a_warning_when_the_file_is_usable(config,
 
 def test_encoder_failure_without_a_file_is_an_error(config, tmp_path):
     messages = []
-    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    recorder = Recorder(config, on_notify=lambda title, text, kind, urgent=False: messages.append((kind, text)))
     prepare_finished_session(recorder, tmp_path, b"", returncode=1)
 
     assert recorder.stop() is True
@@ -245,7 +245,7 @@ def prepare_with_log(recorder, tmp_path, speech_seconds, sides, duration):
 def test_a_side_that_stayed_silent_all_recording_is_reported(config, tmp_path):
     """The whole point: never discover an empty other-side track days later."""
     messages = []
-    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    recorder = Recorder(config, on_notify=lambda title, text, kind, urgent=False: messages.append((kind, text)))
     prepare_with_log(
         recorder, tmp_path, {"mic": 180.0, "speaker": 0.0}, ("mic", "speaker"), duration=1130.0
     )
@@ -261,7 +261,7 @@ def test_a_side_that_stayed_silent_all_recording_is_reported(config, tmp_path):
 
 def test_both_sides_silent_are_named_together(config, tmp_path):
     messages = []
-    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    recorder = Recorder(config, on_notify=lambda title, text, kind, urgent=False: messages.append((kind, text)))
     prepare_with_log(
         recorder, tmp_path, {"mic": 0.0, "speaker": 0.0}, ("mic", "speaker"), duration=600.0
     )
@@ -272,10 +272,14 @@ def test_both_sides_silent_are_named_together(config, tmp_path):
     assert t("common.mic") in warnings[0] and t("common.other") in warnings[0]
 
 
-def test_a_silent_side_is_reported_while_the_conversation_still_runs(config):
+def test_a_silent_side_is_reported_while_the_conversation_still_runs(config, monkeypatch):
     """The warning that matters: early enough to fix the routing."""
+    monkeypatch.setattr(session_module.virt, "in_vm", lambda: False)
     messages = []
-    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    recorder = Recorder(
+        config,
+        on_notify=lambda title, text, kind, urgent=False: messages.append((kind, text, urgent)),
+    )
 
     recorder._on_silent_side("speaker", 20.0)
 
@@ -283,14 +287,54 @@ def test_a_silent_side_is_reported_while_the_conversation_still_runs(config):
         (
             "warning",
             t("session.side_no_audio", sides=t("common.other"), duration=format_duration(20.0)),
+            True,  # stays on screen; a fading bubble is how a side gets lost
         )
     ]
     assert "speaker" in recorder._warned_silent_sides
+    assert recorder.silent_sides == frozenset({"speaker"})
+
+
+def test_in_a_virtual_machine_the_warning_says_what_to_do(config, monkeypatch):
+    """Host audio never reaches a guest - the message has to name that."""
+    monkeypatch.setattr(session_module.virt, "in_vm", lambda: True)
+    monkeypatch.setattr(session_module.virt, "label", lambda: "VMware")
+    messages = []
+    recorder = Recorder(
+        config,
+        on_notify=lambda title, text, kind, urgent=False: messages.append((kind, text, urgent)),
+    )
+
+    recorder._on_silent_side("speaker", 20.0)
+
+    kind, text, urgent = messages[0]
+    assert (kind, urgent) == ("warning", True)
+    assert "VMware" in text
+    assert text == t(
+        "session.side_no_audio_vm",
+        sides=t("common.other"),
+        duration=format_duration(20.0),
+        hypervisor="VMware",
+    )
+
+
+def test_a_silent_microphone_is_not_blamed_on_the_virtual_machine(config, monkeypatch):
+    """Only the other side depends on the host; the microphone is the guest's own."""
+    monkeypatch.setattr(session_module.virt, "in_vm", lambda: True)
+    monkeypatch.setattr(session_module.virt, "label", lambda: "VMware")
+    messages = []
+    recorder = Recorder(
+        config,
+        on_notify=lambda title, text, kind, urgent=False: messages.append((kind, text, urgent)),
+    )
+
+    recorder._on_silent_side("mic", 20.0)
+
+    assert "VMware" not in messages[0][1]
 
 
 def test_the_end_of_recording_warning_does_not_repeat_the_early_one(config, tmp_path):
     messages = []
-    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    recorder = Recorder(config, on_notify=lambda title, text, kind, urgent=False: messages.append((kind, text)))
     prepare_with_log(
         recorder, tmp_path, {"mic": 180.0, "speaker": 0.0}, ("mic", "speaker"), duration=1130.0
     )
@@ -303,7 +347,7 @@ def test_the_end_of_recording_warning_does_not_repeat_the_early_one(config, tmp_
 
 def test_no_warning_when_both_sides_were_heard(config, tmp_path):
     messages = []
-    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    recorder = Recorder(config, on_notify=lambda title, text, kind, urgent=False: messages.append((kind, text)))
     prepare_with_log(
         recorder, tmp_path, {"mic": 12.0, "speaker": 400.0}, ("mic", "speaker"), duration=900.0
     )
@@ -315,7 +359,7 @@ def test_no_warning_when_both_sides_were_heard(config, tmp_path):
 def test_no_warning_for_a_short_recording(config, tmp_path):
     """Ten seconds of silence proves nothing and must not nag."""
     messages = []
-    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    recorder = Recorder(config, on_notify=lambda title, text, kind, urgent=False: messages.append((kind, text)))
     prepare_with_log(
         recorder, tmp_path, {"mic": 0.0, "speaker": 0.0}, ("mic", "speaker"), duration=10.0
     )
@@ -327,7 +371,7 @@ def test_no_warning_for_a_short_recording(config, tmp_path):
 def test_a_side_without_a_device_is_not_blamed(config, tmp_path):
     """No microphone at all is already reported at start; not again at the end."""
     messages = []
-    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    recorder = Recorder(config, on_notify=lambda title, text, kind, urgent=False: messages.append((kind, text)))
     prepare_with_log(
         recorder, tmp_path, {"mic": 0.0, "speaker": 300.0}, ("speaker",), duration=900.0
     )
@@ -338,7 +382,7 @@ def test_a_side_without_a_device_is_not_blamed(config, tmp_path):
 
 def test_clean_stop_reports_duration_and_size(config, tmp_path):
     messages = []
-    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    recorder = Recorder(config, on_notify=lambda title, text, kind, urgent=False: messages.append((kind, text)))
     prepare_finished_session(recorder, tmp_path, b"x" * 2048, returncode=0)
 
     assert recorder.stop() is True
@@ -348,7 +392,7 @@ def test_clean_stop_reports_duration_and_size(config, tmp_path):
 
 def test_capture_event_is_logged_and_announced(config):
     messages = []
-    recorder = Recorder(config, on_notify=lambda title, text, kind: messages.append((kind, text)))
+    recorder = Recorder(config, on_notify=lambda title, text, kind, urgent=False: messages.append((kind, text)))
     recorder._on_capture_event("source_error", {"side": "speaker", "device": "monitor"})
     expected = t("session.source_lost", side=t("common.other_track"))
     assert any(kind == "warning" and text == expected for kind, text in messages)

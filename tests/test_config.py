@@ -139,8 +139,32 @@ def test_validate_normalises_device_values(tmp_path):
     cfg.set("devices.mic", "   ")
     cfg.set("devices.speaker", 42)
     cfg.validate()
-    assert cfg.get("devices.mic") == AUTO
-    assert cfg.get("devices.speaker") == AUTO
+    # Unusable falls back to recording everything, never to nothing.
+    assert cfg.get("devices.mic") == ALL
+    assert cfg.get("devices.speaker") == ALL
+
+
+def test_a_ticked_selection_is_kept_as_a_list(tmp_path):
+    cfg = Config(path=tmp_path / "settings.json")
+    cfg.set("devices.mic", ["  alsa_input.a  ", "alsa_input.b", "alsa_input.a", "", 7])
+    cfg.validate()
+    # Order kept, duplicates and rubbish dropped.
+    assert cfg.get("devices.mic") == ["alsa_input.a", "alsa_input.b"]
+
+
+def test_unticking_everything_is_a_decision_not_an_error(tmp_path):
+    cfg = Config(path=tmp_path / "settings.json")
+    cfg.set("devices.speaker", [])
+    cfg.validate()
+    assert cfg.get("devices.speaker") == []
+
+
+def test_a_selection_survives_a_save_and_reload(tmp_path):
+    target = tmp_path / "settings.json"
+    cfg = Config(path=target)
+    cfg.set("devices.mic", ["alsa_input.a", "alsa_input.b"])
+    cfg.save()
+    assert Config(path=target).load().get("devices.mic") == ["alsa_input.a", "alsa_input.b"]
 
 
 def test_both_sides_default_to_recording_everything(tmp_path):

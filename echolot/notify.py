@@ -40,16 +40,16 @@ class Notifier:
         except Exception:  # noqa: BLE001 - no session bus, missing service, ...
             self._notify_module = None
 
-    def send(self, title: str, text: str, kind: str = "info") -> None:
+    def send(self, title: str, text: str, kind: str = "info", urgent: bool = False) -> None:
         if not self.enabled:
             return
-        if self._send_libnotify(title, text, kind):
+        if self._send_libnotify(title, text, kind, urgent):
             return
-        if self._send_command(title, text, kind):
+        if self._send_command(title, text, kind, urgent):
             return
         print(f"[{kind}] {title}: {text}", file=sys.stderr)
 
-    def _send_libnotify(self, title: str, text: str, kind: str) -> bool:
+    def _send_libnotify(self, title: str, text: str, kind: str, urgent: bool = False) -> bool:
         Notify = self._notify_module
         if Notify is None:
             return False
@@ -64,8 +64,14 @@ class Notifier:
             else:
                 handle.update(title, text, _ICONS.get(kind, "media-record"))
             handle.set_urgency(
-                Notify.Urgency.CRITICAL if kind == "error" else Notify.Urgency.NORMAL
+                Notify.Urgency.CRITICAL
+                if kind == "error" or urgent
+                else Notify.Urgency.NORMAL
             )
+            if urgent:
+                # Stays on screen until it is dismissed: this is the message that
+                # decides whether the recording is worth anything.
+                handle.set_timeout(0)
             handle.set_hint("desktop-entry", _string_hint(f"{paths.APP_ID}"))
             handle.show()
             return True

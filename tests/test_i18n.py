@@ -37,6 +37,11 @@ INDIRECT_KEYS = {
     "settings.format_wav",
     "settings.layout_mix",
     "settings.layout_split",
+    # held in the GROUPS table in ui/levels_window.py
+    "levels.group_inputs",
+    "levels.group_inputs_hint",
+    "levels.group_outputs",
+    "levels.group_outputs_hint",
     # built from the recorder state: t(f"state.{state.value}")
     "state.idle",
     "state.recording",

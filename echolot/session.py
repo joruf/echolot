@@ -23,6 +23,7 @@ from typing import Callable
 
 from . import __build__, __version__, paths
 from .i18n import t
+from . import virt
 from .audio import capture, devices
 from .audio.group import SourceGroup
 from .audio import encoder as encoder_module
@@ -136,11 +137,11 @@ class Recorder:
         if self.on_state is not None:
             self.on_state(state)
 
-    def _notify(self, title: str, text: str, kind: str = "info") -> None:
+    def _notify(self, title: str, text: str, kind: str = "info", urgent: bool = False) -> None:
         if kind == "error":
             self.last_error = text
         if self.on_notify is not None:
-            self.on_notify(title, text, kind)
+            self.on_notify(title, text, kind, urgent=urgent)
 
     # -- preflight ------------------------------------------------------
 
@@ -435,15 +436,28 @@ class Recorder:
                 side=side,
                 silent_seconds=round(seconds, 1),
             )
-        self._notify(
-            paths.APP_NAME,
-            t(
-                "session.side_no_audio",
-                sides=t("common.mic") if side == MIC else t("common.other"),
-                duration=format_duration(seconds),
-            ),
-            "warning",
-        )
+        label = t("common.mic") if side == MIC else t("common.other")
+        duration = format_duration(seconds)
+        if side == SPEAKER and virt.in_vm():
+            # In a guest this is not a mystery, it is the normal case: the host's
+            # audio never reaches the guest. Saying what to do beats saying that
+            # something is wrong.
+            text = t(
+                "session.side_no_audio_vm",
+                sides=label,
+                duration=duration,
+                hypervisor=virt.label(),
+            )
+        else:
+            text = t("session.side_no_audio", sides=label, duration=duration)
+        # Urgent on purpose: a bubble that fades after three seconds is how a
+        # 24 minute conversation ends up recorded with one side missing.
+        self._notify(paths.APP_NAME, text, "warning", urgent=True)
+
+    @property
+    def silent_sides(self) -> frozenset[str]:
+        """Sides proven to be delivering nothing, for as long as that holds."""
+        return frozenset(self._warned_silent_sides)
 
     def _warn_about_silent_sides(self, speech, captures: dict, duration: float) -> None:
         """Say it now if a side never carried a single word.

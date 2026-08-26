@@ -111,7 +111,7 @@ Pause
 ──────────────────────────────────
 You         ▮▮▮▮▮▯▯▯▯▯▯▯    -28 dB     ← live while the menu is open
 Other side  ▮▮▮▮▮▮▮▯▯▯▯▯    -19 dB
-Level test …
+Levels and devices …
 ──────────────────────────────────
 Devices                       ▸       ← all sources (default), automatic, or one
 Recent recordings             ▸       ← last five: play, open folder, open log
@@ -121,7 +121,8 @@ Settings …
 Quit
 ```
 
-**Before an important conversation**, use **Level test …**: both bars have to move, one when you
+**Before an important conversation**, use **Levels and devices …**: the bar of the device you speak
+into has to move, and so does the bar of the output you hear the other person through. One when you
 speak, one when you play something. That is the one check that catches a dead side *before* it costs
 you the conversation rather than after.
 
@@ -159,6 +160,53 @@ silence, so having it along costs nothing. Two consequences:
 `auto` (follow the system default) and naming one device by hand remain available per side, in
 *Devices* and in the settings file. Every source is offered for **either** side, because the other
 side's audio does not always arrive on a monitor — a virtual cable or a line input is a real case.
+
+### Recording inside a virtual machine
+
+In a guest the sound card is virtual: it carries what the guest itself plays and nothing from the
+host. A conversation held in a program on the **host** therefore cannot be recorded from inside the
+guest — the output monitor delivers exact digital silence, and no setting inside the guest changes
+that. Echolot detects the guest (`systemd-detect-virt`, DMI as a fallback) and says so **after 20
+seconds**, with the two ways out, instead of leaving it to be discovered when the conversation is
+over.
+
+* **Hold the conversation inside the guest** — Teams, Meet or Zoom in a browser here. Nothing to
+  configure; both sides are captured as usual.
+* **Route the host output into the guest's audio input.** On a Windows host: enable *Stereo Mix* in
+  the recording devices (or install a virtual audio cable), then point the virtual machine's sound
+  card at it (VMware: *Settings → Sound Card → specify host sound card*). The host mix arrives on the
+  guest's **input**, which the default *record everything* captures without any further setting. To
+  keep your own voice as well, mix the microphone into that device on the host — or pass a USB
+  microphone through to the guest, so the two sides stay on separate devices and therefore on
+  separate channels.
+
+### Levels and devices
+
+*Levels and devices …* in the tray menu opens one window that answers both questions at once, because
+they belong together: **what is arriving on each device right now**, and **which devices go into the
+recording**.
+
+```
+Inputs   (microphones and line inputs - normally your side, channel L)
+  [x] Use all available automatically
+  [x] Analog Stereo Microphone      ▓▓▓▓▓▓▁▁▁▁▁▁   -23 dB
+  [ ] USB Headset                   ▁▁▁▁▁▁▁▁▁▁▁▁     -- dB
+
+Outputs  (what is being played - normally the other side, channel R)
+  [ ] Use all available automatically
+  [x] Monitor of Analog Stereo Out  ▓▓▓▓▁▁▁▁▁▁▁▁   -34 dB
+  [ ] Monitor of EcholotProbe       ▁▁▁▁▁▁▁▁▁▁▁▁     -- dB
+```
+
+* **Every listed device is metered live**, each from its own capture — so the bar tells you which
+  device actually carries the other side. Watching the bar move is the only reliable way to find that
+  out, which is why the tick sits right next to it.
+* **A tick decides what is recorded.** Changes apply immediately, during a running recording too.
+* **Use all available automatically** is the default per side (`all`): every device of that kind,
+  including ones that appear later. Turning it off freezes exactly what is on screen into an explicit
+  list, so nothing changes under you at the moment you take manual control.
+* Unticking everything on a side is allowed and says so plainly — that side then is not recorded.
+* *Rescan devices* re-reads the device list without closing the window.
 
 ## 5. Track layout: mixed or split
 
@@ -348,6 +396,8 @@ label or a missing log line — what cannot is the sentence the other person jus
   counted in the log instead of quietly disappearing.
 * **Audio plays on a secondary output** — captured anyway: every output monitor is recorded, not just
   the default one. A device that appears mid-recording joins its side (`source_added`).
+* **A side stays digitally silent** — said after 20 seconds, in a notification that stays on screen
+  and in the tray tooltip. Inside a virtual machine the message names the cause and the fix.
 * **No microphone at all** — the other side is still recorded, and you get a warning.
 * **The log cannot be written** — the audio keeps recording.
 * **ffmpeg is killed with the session** (logging out) — reported as a warning with duration and size,
@@ -417,7 +467,7 @@ echolot/
   ui/
     tray.py                icon, double click detection, blinking
     menu.py                right click menu, text level meter
-    level_test.py          "does it hear us both" window
+    levels_window.py       live level and a tick per device
     settings_window.py     settings dialog
 resources/                 icons and the .desktop template
 docs/                      MANUAL, TECHNICAL, TRANSCRIPT
@@ -450,7 +500,7 @@ Everything that needs real audio and a real panel is a manual checklist in
 | Symptom | Cause and fix |
 |---------|---------------|
 | No icon in the panel | The systray applet is missing: right click the panel → *Applets* → enable the notification area applet. `run.py --toggle` works meanwhile. |
-| The other side is silent | First: is the audio playing **on this computer** at all? See below. If it is, the wrong output is picked — *Devices → Output (other side)*: choose the monitor of the device you actually listen through, then run the level test. The log confirms either case: `speech_seconds` is `0.0` for that side, and Echolot now warns about it right when the recording ends. |
+| The other side is silent | First: is the audio playing **on this computer** at all? See below — in a virtual machine it is not. If it is, open *Levels and devices …* during the conversation and watch which output bar moves; tick that one. The log confirms either case: `speech_seconds` is `0.0` for that side, and Echolot warns after 20 seconds. |
 | The microphone is silent | Check the input in the Mint sound settings, then *Devices → Microphone*. |
 | "Recording finished" right after starting | Disk full; Echolot stops below `disk.stop_mb`. The log's last line says `disk_full`. |
 | Icon shows `!` | The tooltip and the notification say what happened, and the log has the matching `source_error`. |
@@ -482,7 +532,7 @@ still running**, which is the only moment the routing can still be fixed:
 
 Two more ways to tell:
 
-1. During a conversation, open *Level test …*. The lower bar has to move while you hear the other
+1. During a conversation, open *Levels and devices …*. Some output bar has to move while you hear the other
    person. If it stays flat, the audio is not on this machine.
 2. Afterwards, the log's last line shows `"speech_seconds": {"mic": 179.7, "speaker": 0.0}`, and
    Echolot warns about a side that stayed silent for a whole recording if it had not said so

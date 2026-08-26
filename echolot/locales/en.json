@@ -1,10 +1,8 @@
 {
   "_label": "English",
-
   "common.you": "You",
   "common.other": "Other side",
   "common.mic": "Microphone",
-  "common.output": "Output",
   "common.other_track": "other side's track",
   "common.decimal_separator": ".",
   "common.none": "---",
@@ -13,18 +11,15 @@
   "common.cancel": "Cancel",
   "common.save": "Save",
   "common.choose": "Choose …",
-
   "state.idle": "Ready",
   "state.recording": "Recording",
   "state.paused": "Paused",
   "state.error": "Problem",
-
   "menu.header": "Echolot – {state}",
   "menu.start": "Start recording (double click)",
   "menu.stop": "Stop recording",
   "menu.pause": "Pause",
   "menu.resume": "Resume",
-  "menu.level_test": "Level test …",
   "menu.devices": "Devices",
   "menu.device_mic": "Microphone (you)",
   "menu.device_output": "Output (other side)",
@@ -39,7 +34,6 @@
   "menu.open_log": "Open log",
   "menu.settings": "Settings …",
   "menu.quit": "Quit",
-
   "tooltip.hint": "Double click starts the recording",
   "tooltip.levels": "You {mic} dB · Other side {speaker} dB",
   "tooltip.mic": "Mic: {label}",
@@ -48,7 +42,6 @@
   "tooltip.last_result": "Last: {result}",
   "tooltip.free": "Free: {size}",
   "tooltip.preroll": "Pre-roll: {buffered} of {total} buffered",
-
   "app.already_running": "Echolot is already running.",
   "app.already_running_locked": "Echolot is already running (lock is held).",
   "app.running_title": "Echolot is running",
@@ -59,7 +52,6 @@
   "app.no_tray": "The icon could not be embedded into the system tray.\nEnable the \"Notification area\" applet in the panel.\nRecording can still be toggled with \"run.py --toggle\".",
   "app.folder_failed": "Folder cannot be created: {error}",
   "app.open_failed": "Opening failed: {error}",
-
   "session.ffmpeg_missing": "ffmpeg is missing - nothing can be recorded without it",
   "session.ffmpeg_missing_short": "ffmpeg is missing - recording not possible",
   "session.parec_missing": "parec is missing (package pulseaudio-utils)",
@@ -82,10 +74,11 @@
   "session.encoder_died": "The encoder (ffmpeg) ended the recording",
   "session.disk_full": "Disk space exhausted ({free} MB free) - recording stopped",
   "session.disk_warning": "Only {free} MB left - recording continues",
+  "session.side_no_audio_vm": "Nothing at all is arriving from {sides} - complete silence for {duration}. You are recording inside a {hypervisor} guest, and sound played on the host cannot be captured here. Either hold the conversation inside this virtual machine, or route the host output into the virtual machine's audio input.",
+  "tooltip.no_audio": "WARNING: nothing arriving from {side}",
   "session.side_no_audio": "Nothing at all is arriving from {sides} - complete silence for {duration}. If you can hear the other person, their sound is not reaching this computer.",
   "session.side_silent_session": "No speech at all from {sides} in {duration} of recording. Nothing arrived there - check it with the level test before the next conversation.",
   "session.preroll_failed": "Pre-roll buffer not possible: {error}",
-
   "devices.several": "{count} sources",
   "devices.all": "All available (recommended)",
   "devices.mic_missing": "Microphone '{name}' is not present, using the default device",
@@ -93,13 +86,6 @@
   "devices.mic_none": "No microphone found",
   "devices.output_missing": "Output '{name}' is not present, using the default device",
   "devices.monitor_none": "No output capture (monitor) found",
-
-  "level.title": "Echolot - level test",
-  "level.heading": "<b>Both bars have to move.</b>\nSpeak into the microphone and play something at the same time.",
-  "level.running": "Shows the levels of the running recording.",
-  "level.no_device": "<b>No device for: {sides}</b>",
-  "level.local_only": "The test runs in this window only, nothing is saved.",
-
   "settings.title": "Echolot - settings",
   "settings.storage": "Storage",
   "settings.folder": "Folder",
@@ -153,7 +139,6 @@
   "settings.stop_below": "Stop recording below (MB free)",
   "settings.check_interval": "Check interval (s)",
   "settings.save_failed": "Settings could not be saved",
-
   "cli.description": "Echolot - record conversations from the system tray",
   "cli.help_autostart": "started by the login session (no start message)",
   "cli.help_toggle": "start or stop recording",
@@ -185,6 +170,17 @@
   "cli.record_levels": "  {elapsed}  You {mic} dB   Other side {speaker} dB   ",
   "cli.record_audio": "Audio: {path}",
   "cli.record_log": "Log:   {path}",
-
-  "desktop.comment": "Record conversations from the system tray"
+  "desktop.comment": "Record conversations from the system tray",
+  "levels.title": "Echolot - Levels and devices",
+  "levels.heading": "<b>Tick the devices that should be recorded.</b>\nThe bars show live what is arriving on each one.",
+  "levels.group_inputs": "Inputs",
+  "levels.group_inputs_hint": "Microphones and line inputs - normally your side (channel L).",
+  "levels.group_outputs": "Outputs",
+  "levels.group_outputs_hint": "What is being played - normally the other side (channel R).",
+  "levels.use_all": "Use all available automatically",
+  "levels.nothing_selected": "<b>Nothing selected - this side will not be recorded.</b>",
+  "levels.rescan": "Rescan devices",
+  "levels.footer": "Changes take effect immediately, during a running recording too.",
+  "levels.probe_failed": "<b>No level from: {names}</b>",
+  "menu.levels": "Levels and devices..."
 }

@@ -89,9 +89,9 @@ class AppMenu:
         menu.append(Gtk.SeparatorMenuItem())
         self._append_levels(menu)
 
-        level_test = Gtk.MenuItem(label=t("menu.level_test"))
-        level_test.connect("activate", lambda _item: app.open_level_test())
-        menu.append(level_test)
+        levels = Gtk.MenuItem(label=t("menu.levels"))
+        levels.connect("activate", lambda _item: app.open_levels())
+        menu.append(levels)
 
         menu.append(Gtk.SeparatorMenuItem())
         menu.append(self._devices_item())

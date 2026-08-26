@@ -323,12 +323,35 @@ class Config:
             self.set(key, bool(self.get(key)))
 
         for key in ("devices.mic", "devices.speaker"):
-            value = self.get(key)
-            self.set(key, AUTO if not isinstance(value, str) or not value.strip() else value.strip())
+            self.set(key, _clean_device_value(self.get(key)))
 
         # A stop threshold above the warn threshold would warn after stopping.
         if self.get("disk.stop_mb") > self.get("disk.warn_mb"):
             self.set("disk.warn_mb", self.get("disk.stop_mb"))
+
+
+def _clean_device_value(value: Any) -> Any:
+    """ALL, AUTO, one device name, or an explicit list of names.
+
+    A list is what the levels dialog writes when devices are ticked by hand: kept
+    in order, deduplicated, blanks dropped. An empty list survives - unticking
+    everything is a decision, and resolving it reports the consequence. Anything
+    unusable falls back to ALL, because recording everything is never wrong.
+    """
+    if isinstance(value, (list, tuple)):
+        seen: set[str] = set()
+        names: list[str] = []
+        for entry in value:
+            if not isinstance(entry, str):
+                continue
+            name = entry.strip()
+            if name and name not in seen:
+                seen.add(name)
+                names.append(name)
+        return names
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return ALL
 
 
 def _flatten(data: dict, prefix: str = "") -> dict[str, Any]:

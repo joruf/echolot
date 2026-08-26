@@ -24,7 +24,9 @@ from gi.repository import Gtk  # noqa: E402
 from echolot.app import EcholotApp  # noqa: E402
 from echolot.i18n import t  # noqa: E402
 from echolot.session import State  # noqa: E402
-from echolot.ui.level_test import LevelTestWindow  # noqa: E402
+from echolot.audio.devices import ALL  # noqa: E402
+from echolot.speechlog import MIC, SPEAKER  # noqa: E402
+from echolot.ui.levels_window import LevelsWindow  # noqa: E402
 from echolot.ui.settings_window import SettingsWindow  # noqa: E402
 
 
@@ -168,15 +170,75 @@ def test_bitrate_is_only_editable_for_opus(app, config):
     window.destroy()
 
 
-def test_level_test_window_runs_and_closes(app, config):
+def test_levels_window_runs_and_closes(app, config):
     closed = []
-    window = LevelTestWindow(config, app.recorder, on_closed=lambda: closed.append(1))
+    window = LevelsWindow(config, app.recorder, on_closed=lambda: closed.append(1))
     window.show_all()
     pump()
     window._tick()  # would raise if the widgets were wired up wrongly
     window.destroy()
     pump()
     assert closed == [1]
+
+
+def test_levels_window_lists_every_device_with_a_tick(app, config):
+    window = LevelsWindow(config, app.recorder)
+    pump()
+    rows = window._rows[MIC] + window._rows[SPEAKER]
+    assert rows, "no device rows at all"
+    # Every row carries the three things the dialog is for.
+    for row in rows:
+        assert row.check is not None and row.bar is not None and row.value is not None
+    window.destroy()
+    pump()
+
+
+def test_use_all_is_reflected_and_writable(app, config):
+    config.set("devices.mic", ALL)
+    window = LevelsWindow(config, app.recorder)
+    pump()
+
+    assert window._all_checks[MIC].get_active() is True
+    # While "all" is on, single rows must not be editable behind its back.
+    assert all(not row.check.get_sensitive() for row in window._rows[MIC])
+
+    window._all_checks[MIC].set_active(False)
+    pump()
+    value = config.get("devices.mic")
+    assert isinstance(value, list)  # turned into the explicit selection
+    assert all(row.check.get_sensitive() for row in window._rows[MIC])
+    window.destroy()
+    pump()
+
+
+def test_unticking_a_device_takes_it_out_of_the_recording(app, config):
+    config.set("devices.mic", ALL)
+    window = LevelsWindow(config, app.recorder)
+    pump()
+    window._all_checks[MIC].set_active(False)
+    pump()
+
+    row = window._rows[MIC][0]
+    row.check.set_active(False)
+    pump()
+
+    assert row.device.name not in config.get("devices.mic")
+    window.destroy()
+    pump()
+
+
+def test_a_side_with_nothing_ticked_says_so(app, config):
+    window = LevelsWindow(config, app.recorder)
+    pump()
+    window._all_checks[MIC].set_active(False)
+    for row in window._rows[MIC]:
+        row.check.set_active(False)
+    pump()
+
+    assert config.get("devices.mic") == []
+    assert "<b>" in window._warnings[MIC].get_label()  # visibly warned, not silent
+    window.destroy()
+    pump()
 
 
 def test_tooltip_is_built_in_every_state(app):

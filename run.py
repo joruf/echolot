@@ -140,7 +140,7 @@ def cmd_record(config: Config, seconds: float) -> int:
     """Headless recording, used for verification and scripting."""
     from echolot.session import Recorder, State, format_duration
 
-    def on_notify(title: str, text: str, kind: str) -> None:
+    def on_notify(title: str, text: str, kind: str, urgent: bool = False) -> None:
         print(f"[{kind}] {title}: {text}".replace("\n", " | "))
 
     recorder = Recorder(config, on_notify=on_notify)

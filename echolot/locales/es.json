@@ -1,10 +1,8 @@
 {
   "_label": "Español",
-
   "common.you": "Tú",
   "common.other": "Interlocutor",
   "common.mic": "Micrófono",
-  "common.output": "Salida",
   "common.other_track": "pista del interlocutor",
   "common.decimal_separator": ",",
   "common.none": "---",
@@ -13,18 +11,15 @@
   "common.cancel": "Cancelar",
   "common.save": "Guardar",
   "common.choose": "Elegir …",
-
   "state.idle": "Listo",
   "state.recording": "Grabando",
   "state.paused": "En pausa",
   "state.error": "Problema",
-
   "menu.header": "Echolot – {state}",
   "menu.start": "Iniciar grabación (doble clic)",
   "menu.stop": "Detener grabación",
   "menu.pause": "Pausa",
   "menu.resume": "Continuar",
-  "menu.level_test": "Prueba de nivel …",
   "menu.devices": "Dispositivos",
   "menu.device_mic": "Micrófono (tú)",
   "menu.device_output": "Salida (interlocutor)",
@@ -39,7 +34,6 @@
   "menu.open_log": "Abrir registro",
   "menu.settings": "Ajustes …",
   "menu.quit": "Salir",
-
   "tooltip.hint": "Un doble clic inicia la grabación",
   "tooltip.levels": "Tú {mic} dB · Interlocutor {speaker} dB",
   "tooltip.mic": "Micro: {label}",
@@ -48,7 +42,6 @@
   "tooltip.last_result": "Última: {result}",
   "tooltip.free": "Libre: {size}",
   "tooltip.preroll": "Margen previo: {buffered} de {total} en memoria",
-
   "app.already_running": "Echolot ya está en ejecución.",
   "app.already_running_locked": "Echolot ya está en ejecución (el bloqueo está ocupado).",
   "app.running_title": "Echolot está en ejecución",
@@ -59,7 +52,6 @@
   "app.no_tray": "No se ha podido integrar el icono en el área de notificación.\nActiva el applet «Área de notificación» en el panel.\nLa grabación se puede seguir controlando con «run.py --toggle».",
   "app.folder_failed": "No se puede crear la carpeta: {error}",
   "app.open_failed": "No se ha podido abrir: {error}",
-
   "session.ffmpeg_missing": "falta ffmpeg - sin él no se puede grabar nada",
   "session.ffmpeg_missing_short": "falta ffmpeg - grabación imposible",
   "session.parec_missing": "falta parec (paquete pulseaudio-utils)",
@@ -82,10 +74,11 @@
   "session.encoder_died": "El codificador (ffmpeg) ha terminado la grabación",
   "session.disk_full": "Espacio agotado ({free} MB libres) - grabación detenida",
   "session.disk_warning": "Solo quedan {free} MB - la grabación continúa",
+  "session.side_no_audio_vm": "De {sides} no llega absolutamente nada - silencio total desde {duration}. Estás grabando dentro de un invitado {hypervisor}, y el sonido reproducido en el anfitrión no se puede capturar aquí. Mantén la conversación dentro de esta máquina virtual o dirige la salida del anfitrión a la entrada de audio de la máquina virtual.",
+  "tooltip.no_audio": "ATENCIÓN: de {side} no llega nada",
   "session.side_no_audio": "De {sides} no llega absolutamente nada: silencio total desde {duration}. Si oyes a tu interlocutor, su sonido no llega a este ordenador.",
   "session.side_silent_session": "Ni una palabra de {sides} en {duration} de grabación. Ahí no llegó nada: compruébalo con la prueba de nivel antes de la próxima conversación.",
   "session.preroll_failed": "No es posible el búfer de margen previo: {error}",
-
   "devices.several": "{count} fuentes",
   "devices.all": "Todas las disponibles (recomendado)",
   "devices.mic_missing": "El micrófono «{name}» no está disponible, se usa el dispositivo predeterminado",
@@ -93,13 +86,6 @@
   "devices.mic_none": "No se ha encontrado ningún micrófono",
   "devices.output_missing": "La salida «{name}» no está disponible, se usa el dispositivo predeterminado",
   "devices.monitor_none": "No se ha encontrado ninguna captura de salida (monitor)",
-
-  "level.title": "Echolot - prueba de nivel",
-  "level.heading": "<b>Las dos barras tienen que moverse.</b>\nHabla por el micrófono y reproduce algo al mismo tiempo.",
-  "level.running": "Muestra los niveles de la grabación en curso.",
-  "level.no_device": "<b>Sin dispositivo para: {sides}</b>",
-  "level.local_only": "La prueba solo ocurre en esta ventana, no se guarda nada.",
-
   "settings.title": "Echolot - ajustes",
   "settings.storage": "Almacenamiento",
   "settings.folder": "Carpeta",
@@ -153,7 +139,6 @@
   "settings.stop_below": "Detener la grabación por debajo de (MB libres)",
   "settings.check_interval": "Intervalo de comprobación (s)",
   "settings.save_failed": "No se han podido guardar los ajustes",
-
   "cli.description": "Echolot - graba conversaciones desde el área de notificación",
   "cli.help_autostart": "iniciado por la sesión (sin aviso de arranque)",
   "cli.help_toggle": "iniciar o detener la grabación",
@@ -185,6 +170,17 @@
   "cli.record_levels": "  {elapsed}  Tú {mic} dB   Interlocutor {speaker} dB   ",
   "cli.record_audio": "Audio:    {path}",
   "cli.record_log": "Registro: {path}",
-
-  "desktop.comment": "Graba conversaciones desde el área de notificación"
+  "desktop.comment": "Graba conversaciones desde el área de notificación",
+  "levels.title": "Echolot - Niveles y dispositivos",
+  "levels.heading": "<b>Marca los dispositivos que se deben grabar.</b>\nLas barras muestran en vivo lo que llega a cada uno.",
+  "levels.group_inputs": "Entradas",
+  "levels.group_inputs_hint": "Micrófonos y entradas de línea: normalmente tu lado (canal L).",
+  "levels.group_outputs": "Salidas",
+  "levels.group_outputs_hint": "Lo que se reproduce: normalmente el otro lado (canal R).",
+  "levels.use_all": "Usar automáticamente todos los disponibles",
+  "levels.nothing_selected": "<b>Nada seleccionado: este lado no se grabará.</b>",
+  "levels.rescan": "Volver a buscar dispositivos",
+  "levels.footer": "Los cambios se aplican de inmediato, también durante una grabación.",
+  "levels.probe_failed": "<b>Sin nivel de: {names}</b>",
+  "menu.levels": "Niveles y dispositivos..."
 }

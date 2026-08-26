@@ -93,6 +93,34 @@ def test_a_real_input_may_be_chosen_for_the_other_side(pactl):
     assert resolution.problems == ()
 
 
+def test_a_ticked_selection_is_recorded_as_given(monkeypatch, pactl):
+    """What the levels dialog writes: exactly these devices, in this order."""
+    second = "alsa_input.usb-headset"
+    answers = dict(pactl)
+    answers[("pactl", "list", "short", "sources")] = (
+        SHORT_SOURCES + f"700\t{second}\tPipeWire\ts16le 2ch 48000Hz\tSUSPENDED\n"
+    )
+    monkeypatch.setattr(devices, "_run", lambda args: answers.get(tuple(args), ""))
+
+    resolution = devices.resolve([second, MIC], [MONITOR])
+    assert resolution.mics == (second, MIC)
+    assert resolution.speakers == (MONITOR,)
+    assert resolution.problems == ()
+
+
+def test_a_selected_device_that_vanished_is_named(pactl):
+    resolution = devices.resolve([MIC, "alsa_input.unplugged"], devices.ALL)
+    assert resolution.mics == (MIC,)  # the rest is still recorded
+    assert any("alsa_input.unplugged" in problem for problem in resolution.problems)
+
+
+def test_an_empty_selection_records_nothing_on_that_side(pactl):
+    resolution = devices.resolve(devices.ALL, [])
+    assert resolution.speakers == ()
+    assert resolution.complete is False
+    assert resolution.problems  # says so rather than failing quietly
+
+
 def test_resolve_keeps_explicitly_chosen_devices(pactl):
     resolution = devices.resolve(MIC, MONITOR)
     assert (resolution.mic, resolution.speaker) == (MIC, MONITOR)

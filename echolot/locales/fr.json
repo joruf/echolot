@@ -1,10 +1,8 @@
 {
   "_label": "Français",
-
   "common.you": "Vous",
   "common.other": "Interlocuteur",
   "common.mic": "Microphone",
-  "common.output": "Sortie",
   "common.other_track": "piste de l'interlocuteur",
   "common.decimal_separator": ",",
   "common.none": "---",
@@ -13,18 +11,15 @@
   "common.cancel": "Annuler",
   "common.save": "Enregistrer",
   "common.choose": "Choisir …",
-
   "state.idle": "Prêt",
   "state.recording": "Enregistrement",
   "state.paused": "En pause",
   "state.error": "Problème",
-
   "menu.header": "Echolot – {state}",
   "menu.start": "Démarrer l'enregistrement (double-clic)",
   "menu.stop": "Arrêter l'enregistrement",
   "menu.pause": "Pause",
   "menu.resume": "Reprendre",
-  "menu.level_test": "Test de niveau …",
   "menu.devices": "Périphériques",
   "menu.device_mic": "Microphone (vous)",
   "menu.device_output": "Sortie (interlocuteur)",
@@ -39,7 +34,6 @@
   "menu.open_log": "Ouvrir le journal",
   "menu.settings": "Paramètres …",
   "menu.quit": "Quitter",
-
   "tooltip.hint": "Un double-clic démarre l'enregistrement",
   "tooltip.levels": "Vous {mic} dB · Interlocuteur {speaker} dB",
   "tooltip.mic": "Micro : {label}",
@@ -48,7 +42,6 @@
   "tooltip.last_result": "Dernier : {result}",
   "tooltip.free": "Libre : {size}",
   "tooltip.preroll": "Pré-enregistrement : {buffered} sur {total} en mémoire",
-
   "app.already_running": "Echolot est déjà en cours d'exécution.",
   "app.already_running_locked": "Echolot est déjà en cours d'exécution (verrou occupé).",
   "app.running_title": "Echolot est en cours d'exécution",
@@ -59,7 +52,6 @@
   "app.no_tray": "L'icône n'a pas pu être intégrée à la zone de notification.\nActivez l'applet « Zone de notification » dans le tableau de bord.\nL'enregistrement reste pilotable avec « run.py --toggle ».",
   "app.folder_failed": "Impossible de créer le dossier : {error}",
   "app.open_failed": "Échec de l'ouverture : {error}",
-
   "session.ffmpeg_missing": "ffmpeg est absent - rien ne peut être enregistré sans lui",
   "session.ffmpeg_missing_short": "ffmpeg est absent - enregistrement impossible",
   "session.parec_missing": "parec est absent (paquet pulseaudio-utils)",
@@ -82,10 +74,11 @@
   "session.encoder_died": "L'encodeur (ffmpeg) a mis fin à l'enregistrement",
   "session.disk_full": "Espace disque épuisé ({free} Mo libres) - enregistrement arrêté",
   "session.disk_warning": "Il ne reste que {free} Mo - l'enregistrement continue",
+  "session.side_no_audio_vm": "Rien du tout n'arrive de {sides} - silence complet depuis {duration}. Vous enregistrez dans un invité {hypervisor}, et le son joué sur l'hôte ne peut pas être capté ici. Tenez la conversation dans cette machine virtuelle, ou dirigez la sortie de l'hôte vers l'entrée audio de la machine virtuelle.",
+  "tooltip.no_audio": "ATTENTION : rien n'arrive de {side}",
   "session.side_no_audio": "Rien n'arrive de {sides} - silence complet depuis {duration}. Si vous entendez votre interlocuteur, son son n'atteint pas cet ordinateur.",
   "session.side_silent_session": "Pas un mot de {sides} en {duration} d'enregistrement. Rien n'y est arrivé - vérifiez-le avec le test de niveau avant la prochaine conversation.",
   "session.preroll_failed": "Tampon de pré-enregistrement impossible : {error}",
-
   "devices.several": "{count} sources",
   "devices.all": "Toutes les disponibles (recommandé)",
   "devices.mic_missing": "Le microphone « {name} » est absent, utilisation du périphérique par défaut",
@@ -93,13 +86,6 @@
   "devices.mic_none": "Aucun microphone trouvé",
   "devices.output_missing": "La sortie « {name} » est absente, utilisation du périphérique par défaut",
   "devices.monitor_none": "Aucune capture de sortie (moniteur) trouvée",
-
-  "level.title": "Echolot - test de niveau",
-  "level.heading": "<b>Les deux barres doivent bouger.</b>\nParlez dans le microphone et lisez quelque chose en même temps.",
-  "level.running": "Affiche les niveaux de l'enregistrement en cours.",
-  "level.no_device": "<b>Aucun périphérique pour : {sides}</b>",
-  "level.local_only": "Le test n'a lieu que dans cette fenêtre, rien n'est enregistré.",
-
   "settings.title": "Echolot - paramètres",
   "settings.storage": "Stockage",
   "settings.folder": "Dossier",
@@ -153,7 +139,6 @@
   "settings.stop_below": "Arrêter l'enregistrement en dessous de (Mo libres)",
   "settings.check_interval": "Intervalle de vérification (s)",
   "settings.save_failed": "Les paramètres n'ont pas pu être enregistrés",
-
   "cli.description": "Echolot - enregistre les conversations depuis la zone de notification",
   "cli.help_autostart": "lancé par la session (aucun message de démarrage)",
   "cli.help_toggle": "démarrer ou arrêter l'enregistrement",
@@ -185,6 +170,17 @@
   "cli.record_levels": "  {elapsed}  Vous {mic} dB   Interlocuteur {speaker} dB   ",
   "cli.record_audio": "Audio   : {path}",
   "cli.record_log": "Journal : {path}",
-
-  "desktop.comment": "Enregistre les conversations depuis la zone de notification"
+  "desktop.comment": "Enregistre les conversations depuis la zone de notification",
+  "levels.title": "Echolot - Niveaux et périphériques",
+  "levels.heading": "<b>Cochez les périphériques à enregistrer.</b>\nLes barres montrent en direct ce qui arrive sur chacun.",
+  "levels.group_inputs": "Entrées",
+  "levels.group_inputs_hint": "Microphones et entrées ligne - normalement votre côté (canal L).",
+  "levels.group_outputs": "Sorties",
+  "levels.group_outputs_hint": "Ce qui est joué - normalement l'autre côté (canal R).",
+  "levels.use_all": "Utiliser automatiquement tous les disponibles",
+  "levels.nothing_selected": "<b>Rien de sélectionné - ce côté ne sera pas enregistré.</b>",
+  "levels.rescan": "Relire les périphériques",
+  "levels.footer": "Les changements prennent effet immédiatement, même pendant un enregistrement.",
+  "levels.probe_failed": "<b>Aucun niveau de : {names}</b>",
+  "menu.levels": "Niveaux et périphériques..."
 }

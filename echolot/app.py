@@ -20,7 +20,7 @@ from .i18n import t
 from .instance import PING, TOGGLE, InstanceLock
 from .notify import Notifier
 from .session import Recorder, State, format_duration, free_megabytes
-from .ui.level_test import LevelTestWindow
+from .ui.levels_window import LevelsWindow
 from .ui.menu import AppMenu, shorten, state_label
 from .ui.settings_window import SettingsWindow
 from .ui.tray import TrayIcon
@@ -48,7 +48,7 @@ class EcholotApp:
         self.menu = AppMenu(self)
         self.tray: TrayIcon | None = None
         self.settings_window: SettingsWindow | None = None
-        self.level_window: LevelTestWindow | None = None
+        self.level_window: LevelsWindow | None = None
         self._tick_source: int | None = None
 
     # -- lifecycle ------------------------------------------------------
@@ -145,13 +145,13 @@ class EcholotApp:
     def _on_state(self, state: State) -> None:
         GLib.idle_add(self._apply_state, state)
 
-    def _on_notify(self, title: str, text: str, kind: str) -> None:
+    def _on_notify(self, title: str, text: str, kind: str, urgent: bool = False) -> None:
         GLib.idle_add(self._show_notification, title, text, kind)
 
     def _show_notification(self, title: str, text: str, kind: str) -> bool:
         if kind in ("warning", "error") and not self.config.get("notifications.on_error"):
             return False
-        self.notifier.send(title, text, kind)
+        self.notifier.send(title, text, kind, urgent=urgent)
         return False
 
     # -- appearance -----------------------------------------------------
@@ -191,6 +191,13 @@ class EcholotApp:
                     speaker=f"{speaker.level_db:.0f}",
                 )
             )
+            for side in sorted(recorder.silent_sides):
+                lines.append(
+                    t(
+                        "tooltip.no_audio",
+                        side=t("common.mic") if side == "mic" else t("common.other"),
+                    )
+                )
             mic_label, speaker_label = recorder.device_labels()
             lines.append(t("tooltip.mic", label=shorten(mic_label, 40)))
             lines.append(t("tooltip.output", label=shorten(speaker_label, 40)))
@@ -245,11 +252,11 @@ class EcholotApp:
         self.recorder.apply_device_settings()
         self.recorder.apply_preroll_settings()
 
-    def open_level_test(self) -> None:
+    def open_levels(self) -> None:
         if self.level_window is not None:
             self.level_window.present()
             return
-        self.level_window = LevelTestWindow(
+        self.level_window = LevelsWindow(
             self.config, self.recorder, on_closed=self._on_level_closed
         )
         self.level_window.show_all()

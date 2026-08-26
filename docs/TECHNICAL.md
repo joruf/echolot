@@ -44,7 +44,7 @@ echolot/
   ui/
     tray.py                Gtk.StatusIcon (+ XApp fallback), double click, blinking
     menu.py                right click menu, text level meter
-    level_test.py          "does it hear us both" window
+    levels_window.py       live level and a tick per device
     settings_window.py     settings dialog
 ```
 
@@ -170,6 +170,27 @@ capturing runs continuously, so the microphone counts as in use for as long as t
 The buffer is rebuilt whenever layout, sample rate, block length or the device settings change
 (`Preroll.signature()`), since the ring holds already-rendered blocks. It restarts by itself after
 every recording, and while idle it follows device changes like a recording does.
+
+### The levels dialog
+
+`ui/levels_window.py` lists every source with a live bar and a tick. It opens one capture per listed
+device, including while a recording runs: reading the recording's own per-side level would be cheaper,
+but a side can be several devices summed, and a row would then show the sum instead of that device -
+the very confusion the window exists to end. Captures stop when the window closes.
+
+A tick writes `devices.mic` / `devices.speaker` as an explicit list and calls
+`recorder.apply_device_settings()`, so a running recording follows. "Use all available" writes `ALL`
+and makes the rows insensitive; turning it off freezes what is on screen into a list, so nothing moves
+under the user at the moment they take manual control.
+
+### Guests
+
+`virt.py` answers one question, cached for the process: is this a virtual machine, and which one
+(`systemd-detect-virt --vm`, DMI strings as a fallback). It is read on exactly one path - when an
+output monitor is proven to deliver nothing but exact zeros. In a guest that is not a mystery but the
+normal case, because the host's audio never reaches the guest, so the warning names the hypervisor
+and the two ways out. The notification is sent with critical urgency and no timeout: a bubble that
+fades after three seconds is how a 24 minute conversation ends up with one side missing.
 
 ## 5. Device handling
 
