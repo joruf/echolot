@@ -197,5 +197,7 @@
   "selftest.no_devices": "   Aucun périphérique configuré.",
   "selftest.verdict_ok": "Résultat : tout va bien, les deux côtés sont enregistrés.",
   "selftest.verdict_devices": "Résultat : Echolot fonctionne, mais rien n'arrive de {sides}. Ce son n'atteint pas cette machine.",
-  "selftest.verdict_failed": "Résultat : la chaîne d'enregistrement n'a pas passé le test."
+  "selftest.verdict_failed": "Résultat : la chaîne d'enregistrement n'a pas passé le test.",
+  "levels.kind_input": "entrée",
+  "levels.kind_output": "sortie"
 }

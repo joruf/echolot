@@ -197,5 +197,7 @@
   "selftest.no_devices": "   Ningún dispositivo configurado.",
   "selftest.verdict_ok": "Resultado: todo correcto, ambos lados se graban.",
   "selftest.verdict_devices": "Resultado: Echolot funciona, pero de {sides} no llega nada. Ese sonido no alcanza este equipo.",
-  "selftest.verdict_failed": "Resultado: la cadena de grabación no pasó la prueba."
+  "selftest.verdict_failed": "Resultado: la cadena de grabación no pasó la prueba.",
+  "levels.kind_input": "entrada",
+  "levels.kind_output": "salida"
 }

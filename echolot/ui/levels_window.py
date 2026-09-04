@@ -49,12 +49,20 @@ def normalise(level_db: float) -> float:
 class DeviceRow:
     """One device: the tick, the live bar, the number."""
 
-    def __init__(self, device, on_toggled: Callable[[], None]) -> None:
+    def __init__(self, device, on_toggled: Callable[[], None], foreign: bool = False) -> None:
         self.device = device
         self.shown_db = FLOOR_DB
         self.capture: capture.CaptureProcess | None = None
+        #: True when this device is not the kind the group is about - an input
+        #: offered for the other side, for instance. Listed anyway, because the
+        #: other side's audio does not always arrive on a monitor.
+        self.foreign = foreign
 
-        self.check = Gtk.CheckButton(label=shorten(device.label(), LABEL_CHARS))
+        caption = shorten(device.label(), LABEL_CHARS)
+        if foreign:
+            kind = t("levels.kind_input") if not device.is_monitor else t("levels.kind_output")
+            caption = f"{caption}  [{kind}]"
+        self.check = Gtk.CheckButton(label=caption)
         self.check.set_tooltip_text(device.name)
         self._handler = self.check.connect("toggled", lambda _button: on_toggled())
 
@@ -199,9 +207,18 @@ class LevelsWindow(Gtk.Window):
                 grid.remove(child)
             self._rows[side] = []
 
-            wanted = [device for device in sources if device.is_monitor is monitors]
+            # Every source in both groups: the expected kind first, then the rest.
+            # A virtual cable or a line input carrying the far end is a real case,
+            # and it must be tickable where its level is visible.
+            expected = [device for device in sources if device.is_monitor is monitors]
+            others = [device for device in sources if device.is_monitor is not monitors]
+            wanted = expected + others
             for index, device in enumerate(wanted):
-                row = DeviceRow(device, on_toggled=self._on_row_toggled)
+                row = DeviceRow(
+                    device,
+                    on_toggled=self._on_row_toggled,
+                    foreign=device.is_monitor is not monitors,
+                )
                 row.attach(grid, index)
                 self._rows[side].append(row)
                 if not self._start_capture(row, side):
@@ -244,7 +261,9 @@ class LevelsWindow(Gtk.Window):
         if isinstance(value, (list, tuple)):
             selected = set(value)
         elif every:
-            selected = {row.device.name for row in self._rows[side]}
+            # "All available" means every device of this side's own kind - the
+            # foreign ones are on offer, not implied.
+            selected = {row.device.name for row in self._rows[side] if not row.foreign}
         else:
             # AUTO or a single name: show what would actually be recorded.
             resolution = devices_module.resolve(

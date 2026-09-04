@@ -197,5 +197,7 @@
   "selftest.no_devices": "   No device set.",
   "selftest.verdict_ok": "Result: all good - both sides are being recorded.",
   "selftest.verdict_devices": "Result: Echolot works, but nothing arrives from {sides}. That sound does not reach this machine.",
-  "selftest.verdict_failed": "Result: the recording chain did not pass the test."
+  "selftest.verdict_failed": "Result: the recording chain did not pass the test.",
+  "levels.kind_input": "input",
+  "levels.kind_output": "output"
 }

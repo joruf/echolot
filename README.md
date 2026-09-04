@@ -207,6 +207,10 @@ Outputs  (what is being played - normally the other side, channel R)
   including ones that appear later. Turning it off freezes exactly what is on screen into an explicit
   list, so nothing changes under you at the moment you take manual control.
 * Unticking everything on a side is allowed and says so plainly — that side then is not recorded.
+* **Every source is offered on both sides**, the matching kind first and the rest marked
+  `[input]` / `[output]`. The other side's audio does not always arrive on a monitor: a virtual
+  cable or a line input carrying a remote party is a real case, and it has to be tickable where its
+  level is visible. *All available* still means only that side's own kind.
 * *Rescan devices* re-reads the device list without closing the window.
 
 ## 5. Proving that both sides are recorded

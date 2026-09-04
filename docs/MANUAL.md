@@ -62,8 +62,9 @@ Quit
 
 * **Devices** — by default *All available* on both sides: every input and every output monitor is
   recorded at once, so nothing has to be chosen and audio on a second output is not missed. Pick one
-  device instead if you prefer; every source is offered for either side, and the change takes effect
-  during a running recording.
+  device instead if you prefer; every source is offered for either side - including an input for the
+  other side, which is what a virtual cable needs - and the change takes effect during a running
+  recording.
 * **Recent recordings** — the last five, each with *Play*, *Open folder*, *Open log*.
 * **Quit** — quits. A running recording is closed properly first.
 

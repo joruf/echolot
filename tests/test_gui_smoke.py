@@ -248,3 +248,49 @@ def test_tooltip_is_built_in_every_state(app):
         assert "Echolot" in text
         assert len(text.splitlines()) >= 2
     app.recorder._state = State.IDLE
+
+
+def test_every_source_is_offered_on_both_sides(app, config):
+    """The other side's audio can arrive on an input - a cable, a line in."""
+    window = LevelsWindow(config, app.recorder)
+    pump()
+
+    mic_names = [row.device.name for row in window._rows[MIC]]
+    speaker_names = [row.device.name for row in window._rows[SPEAKER]]
+    assert set(mic_names) == set(speaker_names), "a side is hiding devices"
+    # The expected kind comes first, the rest are marked as foreign.
+    assert window._rows[MIC][0].foreign is False
+    assert any(row.foreign for row in window._rows[SPEAKER]) or len(speaker_names) == 1
+    window.destroy()
+    pump()
+
+
+def test_an_input_can_be_ticked_for_the_other_side(app, config):
+    """The setting the host-audio route needs: an input on the far-side channel."""
+    window = LevelsWindow(config, app.recorder)
+    pump()
+    window._all_checks[SPEAKER].set_active(False)
+    pump()
+
+    foreign = [row for row in window._rows[SPEAKER] if row.foreign]
+    if not foreign:
+        window.destroy(); pump(); pytest.skip("this machine has only one kind of source")
+    row = foreign[0]
+    row.check.set_active(True)
+    pump()
+
+    assert row.device.name in config.get("devices.speaker")
+    window.destroy()
+    pump()
+
+
+def test_all_available_does_not_imply_the_foreign_devices(app, config):
+    """"All available" stays "every monitor", not "every source there is"."""
+    config.set("devices.speaker", ALL)
+    window = LevelsWindow(config, app.recorder)
+    pump()
+
+    for row in window._rows[SPEAKER]:
+        assert row.check.get_active() is (not row.foreign)
+    window.destroy()
+    pump()

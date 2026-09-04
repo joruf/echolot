@@ -197,5 +197,7 @@
   "selftest.no_devices": "   Kein Gerät eingestellt.",
   "selftest.verdict_ok": "Ergebnis: alles in Ordnung - beide Seiten werden aufgezeichnet.",
   "selftest.verdict_devices": "Ergebnis: Echolot arbeitet, aber von {sides} kommt nichts an. Der Ton erreicht diesen Rechner nicht.",
-  "selftest.verdict_failed": "Ergebnis: die Aufnahmekette hat den Test nicht bestanden."
+  "selftest.verdict_failed": "Ergebnis: die Aufnahmekette hat den Test nicht bestanden.",
+  "levels.kind_input": "Eingang",
+  "levels.kind_output": "Ausgabe"
 }
