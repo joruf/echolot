@@ -127,13 +127,18 @@ class Progress:
             del self.lines[:-200]
 
 
-def ensure(app: str, needs: Sequence[Need], *, force: bool = False) -> bool:
+def ensure(
+    app: str, needs: Sequence[Need], *, force: bool = False, interactive: bool = True
+) -> bool:
     """Makes sure everything is there, showing the work when there is work to show.
 
     Args:
         app: The application's name, for the window title.
         needs: What it needs.
         force: True to open the window even when nothing is missing.
+        interactive: False for a command line run, which must never wait behind a
+            window - it installs and reports on the terminal instead. A blocking
+            window there hangs scripts and looks exactly like a broken recorder.
 
     Returns:
         bool: True when the application may start. False when something it cannot do without is
@@ -150,7 +155,7 @@ def ensure(app: str, needs: Sequence[Need], *, force: bool = False) -> bool:
     for need in needs:
         progress.set(need, "pending")
 
-    window = _Window(app, progress) if _can_show() else None
+    window = _Window(app, progress) if interactive and _can_show() else None
     outcome: dict[str, bool] = {}
 
     def work() -> None:

@@ -20,19 +20,20 @@ Interface available in **English** (default), **German**, **Spanish** and **Fren
 2. [Requirements and installation](#2-requirements-and-installation)
 3. [Using it](#3-using-it)
 4. [What ends up on disk](#4-what-ends-up-on-disk)
-5. [Track layout: mixed or split](#5-track-layout-mixed-or-split)
-6. [Pre-roll: recording the past](#6-pre-roll-recording-the-past)
-7. [Languages](#7-languages)
-8. [Settings reference](#8-settings-reference)
-9. [Command line reference](#9-command-line-reference)
-10. [The speech log](#10-the-speech-log)
-11. [Behaviour when things go wrong](#11-behaviour-when-things-go-wrong)
-12. [How it works](#12-how-it-works)
-13. [Project layout](#13-project-layout)
-14. [Tests](#14-tests)
-15. [Troubleshooting](#15-troubleshooting)
-16. [Known limits](#16-known-limits)
-17. [Legal note](#17-legal-note)
+5. [Proving that both sides are recorded](#5-proving-that-both-sides-are-recorded)
+6. [Track layout: mixed or split](#6-track-layout-mixed-or-split)
+7. [Pre-roll: recording the past](#7-pre-roll-recording-the-past)
+8. [Languages](#8-languages)
+9. [Settings reference](#9-settings-reference)
+10. [Command line reference](#10-command-line-reference)
+11. [The speech log](#11-the-speech-log)
+12. [Behaviour when things go wrong](#12-behaviour-when-things-go-wrong)
+13. [How it works](#13-how-it-works)
+14. [Project layout](#14-project-layout)
+15. [Tests](#15-tests)
+16. [Troubleshooting](#16-troubleshooting)
+17. [Known limits](#17-known-limits)
+18. [Legal note](#18-legal-note)
 
 ---
 
@@ -208,7 +209,52 @@ Outputs  (what is being played - normally the other side, channel R)
 * Unticking everything on a side is allowed and says so plainly — that side then is not recorded.
 * *Rescan devices* re-reads the device list without closing the window.
 
-## 5. Track layout: mixed or split
+## 5. Proving that both sides are recorded
+
+`--selftest` records for real and then looks inside the file. It answers two
+questions separately, because they fail for completely different reasons:
+
+```
+$ python3 run.py --selftest
+Echolot self test
+
+1) Recording chain - virtual devices, one test tone each, separate channels
+   OK   You: own tone -6.2 dBFS, separation 78 dB
+   OK   Other side: own tone -6.2 dBFS, separation 77 dB
+   -> Both sides are being recorded.
+
+2) The devices you have set - listening for 2 seconds
+   signal   You: alsa_input.pci-0000_02_02.0.analog-stereo (-78.3 dBFS)
+   SILENT   Other side: alsa_output...analog-stereo.monitor - exact digital zero, nothing arrives here
+
+Result: Echolot works, but nothing arrives from Other side. That sound does not reach this machine.
+```
+
+**Phase 1** creates two virtual devices, plays **440 Hz** into the microphone side and **880 Hz** into
+the other side, records them through the whole pipeline, and then measures each channel for *its own*
+frequency and *the other's*. That is what makes the verdict worth anything: a check for "is there
+sound" passes with the sides swapped or with one side bleeding into both channels — asking for a
+specific frequency in a specific channel cannot.
+
+**Phase 2** listens to the devices that are actually configured and distinguishes a **quiet room**
+(a noise floor, -78 dBFS above) from **exact digital zero**, which means nothing is connected to that
+side at all. In a virtual machine that is the normal state for the output side, and it is what a green
+phase 1 with a red phase 2 tells you: Echolot is fine, the sound is not here.
+
+Exit codes: `0` all good, `1` the recording chain failed, `2` the chain works but a configured device
+delivers nothing.
+
+The same machinery runs in the test suite (`tests/test_end_to_end.py`), for **every** output format —
+opus is decoded back before analysis, so the format people actually record in is proven rather than
+assumed:
+
+| Format | Microphone side | Other side | Separation |
+|---|---|---|---|
+| opus (default) | -6.2 dBFS | -6.2 dBFS | 75-87 dB |
+| flac | -6.2 dBFS | -6.2 dBFS | 78-96 dB |
+| wav | -6.1 dBFS | -6.2 dBFS | 76-116 dB |
+
+## 6. Track layout: mixed or split
 
 *Settings → Recording → Tracks*
 
@@ -231,7 +277,7 @@ A normal mono mix can be made from a split file at any time:
 ffmpeg -i Echolot_2026-08-12_10-15-03.opus -ac 1 conversation.opus
 ```
 
-## 6. Pre-roll: recording the past
+## 7. Pre-roll: recording the past
 
 *Settings → Pre-roll* — **off by default**
 
@@ -262,7 +308,7 @@ starts filling again by itself after every recording, and it follows device chan
 In the log, `preroll_seconds` says how much lead-up a file contains and `recording_started` marks the
 moment record was actually pressed.
 
-## 7. Languages
+## 8. Languages
 
 | Code | Language | File |
 |------|----------|------|
@@ -286,7 +332,7 @@ the `{placeholders}`, set `_label` to the language's own name (that is what the 
 save it as `<code>.json`. Missing keys fall back to English, so a partial file is already usable.
 `python3 -m pytest tests/test_i18n.py` then holds the new file to the same standard as the others.
 
-## 8. Settings reference
+## 9. Settings reference
 
 *Settings …* in the menu, or edit `~/.config/echolot/settings.json` directly. Impossible values are
 clamped when the file is read, an unreadable file falls back to the defaults, and settings added by a
@@ -321,7 +367,7 @@ later version are filled in and written back once — the tray always comes up.
 | `disk.stop_mb` | `300` | stop the recording cleanly below this |
 | `disk.check_interval_s` | `15` | how often free space is checked |
 
-## 9. Command line reference
+## 10. Command line reference
 
 ```bash
 python3 run.py                 # start the tray icon
@@ -331,6 +377,7 @@ python3 run.py --quit          # stop the running instance
 python3 run.py --record 60     # record 60 seconds without any GUI (0 = until Ctrl-C)
 python3 run.py --devices       # which devices would be recorded, and all alternatives
 python3 run.py --check         # requirements, storage, free space, layout, pre-roll
+python3 run.py --selftest      # record both sides for real and prove it (exit 0 / 1 / 2)
 python3 run.py --version
 ```
 
@@ -344,7 +391,7 @@ python3 /home/joruf/Applications/echolot/run.py --toggle
 
 If no instance is running, `--toggle` starts one and begins recording immediately.
 
-## 10. The speech log
+## 11. The speech log
 
 JSON Lines, one object per line, flushed immediately — a log that only survived a clean shutdown
 would be worthless for exactly the sessions you care about. All times are seconds from the start of
@@ -382,7 +429,7 @@ the audio file, so they work directly as playback offsets.
 by it. The last line answers whether a recording can be trusted: `speech_seconds` of `0.0` for one
 side means that side was silent, and `gap_blocks` counts 20 ms blocks that had to be filled in.
 
-## 11. Behaviour when things go wrong
+## 12. Behaviour when things go wrong
 
 The recording keeps running. That is the design principle: what can be recovered later is a wrong
 label or a missing log line — what cannot is the sentence the other person just said.
@@ -414,7 +461,7 @@ Only two conditions stop a running recording, both announced and both logged:
 | ffmpeg is gone | there is nothing left to write into |
 | free space below `disk.stop_mb` | writing on would damage what already exists |
 
-## 12. How it works
+## 13. How it works
 
 ```
 parec --raw -d <mic>      ─┐
@@ -441,7 +488,7 @@ parec --raw -d <monitor>  ─┘   timeline      libopus
 Full detail, including the measurements behind these choices, in
 [docs/TECHNICAL.md](docs/TECHNICAL.md).
 
-## 13. Project layout
+## 14. Project layout
 
 ```
 run.py                     entry point and CLI
@@ -471,17 +518,18 @@ echolot/
     settings_window.py     settings dialog
 resources/                 icons and the .desktop template
 docs/                      MANUAL, TECHNICAL, TRANSCRIPT
-tests/                     162 tests
+tests/                     249 tests
 ```
 
-## 14. Tests
+## 15. Tests
 
 ```bash
 python3 -m pytest
 ```
 
-162 tests. Two of them need a working sound server; the rest run anywhere, and the GUI smoke tests
-skip themselves without a display.
+249 tests. The end-to-end recordings and a few device tests need a working sound server and skip
+themselves without one; the GUI smoke tests skip themselves without a display. Everything else runs
+anywhere.
 
 Covered: the naming scheme and file pairing, settings clamping and migration, device resolution
 including the JSON-unavailable and no-monitor cases, both track layouts (mono summing, limiting,
@@ -492,10 +540,17 @@ capture buffering and overrun counting, all four language files for completeness
 placeholders, the autostart entry, double click detection, and a GUI smoke test that builds every
 window and the menu against the real GTK.
 
+On top of that, `tests/test_end_to_end.py` records **for real**: virtual devices, 440 Hz into the
+microphone side and 880 Hz into the other side, through the whole pipeline, in **every** output format
+(opus decoded back before analysis). Each channel is then measured for its own frequency and the
+other's, which is what catches swapped sides and bleed - a plain "is there sound" check cannot. The
+analysis itself is tested separately in `tests/test_selftest.py`, because a wrong analysis would make
+a green test meaningless.
+
 Everything that needs real audio and a real panel is a manual checklist in
 [docs/TECHNICAL.md](docs/TECHNICAL.md#manual-verification).
 
-## 15. Troubleshooting
+## 16. Troubleshooting
 
 | Symptom | Cause and fix |
 |---------|---------------|
@@ -541,7 +596,7 @@ Two more ways to tell:
 The fix is to move the sound onto this machine — run the call in a browser or app **here** — because
 no setting can capture audio that is not present.
 
-## 16. Known limits
+## 17. Known limits
 
 * **Skew between the sides.** Filling silence for a starving side shifts that side against the other
   by 20 ms per filled block, permanently. Measured over 30 s recordings: usually 0 filled blocks,
@@ -556,7 +611,7 @@ no setting can capture audio that is not present.
 * **No speech recognition included** — Echolot produces the material and the timing; the transcript is
   one script away, see [docs/TRANSCRIPT.md](docs/TRANSCRIPT.md).
 
-## 17. Legal note
+## 18. Legal note
 
 Recording a conversation with other people generally requires their consent, and the rules differ by
 country and context. Whether your use is allowed is yours to check.

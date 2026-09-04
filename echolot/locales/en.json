@@ -182,5 +182,20 @@
   "levels.rescan": "Rescan devices",
   "levels.footer": "Changes take effect immediately, during a running recording too.",
   "levels.probe_failed": "<b>No level from: {names}</b>",
-  "menu.levels": "Levels and devices..."
+  "menu.levels": "Levels and devices...",
+  "cli.help_selftest": "Record both sides for real and prove that it worked",
+  "selftest.title": "Echolot self test",
+  "selftest.phase_pipeline": "1) Recording chain - virtual devices, one test tone each, separate channels",
+  "selftest.phase_devices": "2) The devices you have set - listening for 2 seconds",
+  "selftest.side_ok": "   OK   {side}: own tone {level} dBFS, separation {separation}",
+  "selftest.side_failed": "   FAILED  {side}: {reason}",
+  "selftest.mixed": "mixed layout",
+  "selftest.pipeline_ok": "   -> Both sides are being recorded.",
+  "selftest.pipeline_failed": "   -> The recording chain is broken.",
+  "selftest.device_signal": "   signal   {side}: {device} ({level} dBFS)",
+  "selftest.device_silent": "   SILENT   {side}: {device} - exact digital zero, nothing arrives here",
+  "selftest.no_devices": "   No device set.",
+  "selftest.verdict_ok": "Result: all good - both sides are being recorded.",
+  "selftest.verdict_devices": "Result: Echolot works, but nothing arrives from {sides}. That sound does not reach this machine.",
+  "selftest.verdict_failed": "Result: the recording chain did not pass the test."
 }

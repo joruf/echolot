@@ -182,5 +182,20 @@
   "levels.rescan": "Geräte neu einlesen",
   "levels.footer": "Änderungen wirken sofort, auch während einer laufenden Aufnahme.",
   "levels.probe_failed": "<b>Kein Pegel von: {names}</b>",
-  "menu.levels": "Pegel und Geräte..."
+  "menu.levels": "Pegel und Geräte...",
+  "cli.help_selftest": "Beide Seiten wirklich aufnehmen und nachweisen, dass es geklappt hat",
+  "selftest.title": "Echolot Selbsttest",
+  "selftest.phase_pipeline": "1) Aufnahmekette - virtuelle Geräte, je ein Prüfton, getrennte Kanäle",
+  "selftest.phase_devices": "2) Deine eingestellten Geräte - 2 Sekunden mithören",
+  "selftest.side_ok": "   OK   {side}: eigener Ton {level} dBFS, Trennung {separation}",
+  "selftest.side_failed": "   FEHLER  {side}: {reason}",
+  "selftest.mixed": "gemischtes Layout",
+  "selftest.pipeline_ok": "   -> Beide Seiten werden aufgezeichnet.",
+  "selftest.pipeline_failed": "   -> Die Aufnahmekette ist defekt.",
+  "selftest.device_signal": "   Signal   {side}: {device} ({level} dBFS)",
+  "selftest.device_silent": "   STUMM    {side}: {device} - exakte digitale Null, hier kommt nichts an",
+  "selftest.no_devices": "   Kein Gerät eingestellt.",
+  "selftest.verdict_ok": "Ergebnis: alles in Ordnung - beide Seiten werden aufgezeichnet.",
+  "selftest.verdict_devices": "Ergebnis: Echolot arbeitet, aber von {sides} kommt nichts an. Der Ton erreicht diesen Rechner nicht.",
+  "selftest.verdict_failed": "Ergebnis: die Aufnahmekette hat den Test nicht bestanden."
 }

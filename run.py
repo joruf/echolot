@@ -8,6 +8,7 @@ Usage:
     python3 run.py --record 20      record 20 seconds without any GUI
     python3 run.py --devices        show which devices would be recorded
     python3 run.py --check          check that everything needed is in place
+    python3 run.py --selftest       record both sides for real and prove it worked
 """
 
 from __future__ import annotations
@@ -51,7 +52,14 @@ if __name__ == "__main__":
     if _SETUP:
         sys.argv.remove("--setup")
 
-    if not ensure("Echolot", NEEDS, force=_SETUP):
+    # A command line run must never end up waiting behind the installer window:
+    # it hangs scripts and is indistinguishable from a recorder that does not work.
+    _CLI_FLAGS = (
+        "--record", "--devices", "--check", "--selftest", "--version", "--quit", "--toggle",
+    )
+    _IS_CLI = any(flag in sys.argv for flag in _CLI_FLAGS)
+
+    if not ensure("Echolot", NEEDS, force=_SETUP, interactive=not _IS_CLI):
         raise SystemExit(1)
 
 
@@ -184,6 +192,70 @@ def cmd_record(config: Config, seconds: float) -> int:
     return 0
 
 
+def cmd_selftest(config: Config) -> int:
+    """Record both directions for real and say whether they arrived.
+
+    Two separate questions, answered separately on purpose: is Echolot's
+    recording chain intact (virtual devices, known tones, per-channel analysis),
+    and are the devices it is actually set to record delivering anything. A green
+    chain with a digitally silent output means the sound never reaches this
+    machine - that is not the same failure and must not read like one.
+    """
+    from echolot import selftest as selftest_module
+
+    print(t("selftest.title"))
+    print()
+
+    print(t("selftest.phase_pipeline"))
+    result = selftest_module.run_pipeline_test(seconds=5.0)
+    for check in result.checks:
+        caption = t("common.you") if check.side == "mic" else t("common.other")
+        if check.clean:
+            print(
+                t(
+                    "selftest.side_ok",
+                    side=caption,
+                    level=f"{check.own_db:.1f}",
+                    separation=(
+                        t("selftest.mixed")
+                        if check.mixed
+                        else f"{check.separation_db:.0f} dB"
+                    ),
+                )
+            )
+        else:
+            print(t("selftest.side_failed", side=caption, reason=check.reason()))
+    for problem in result.problems:
+        print(f"  - {problem}")
+    print(t("selftest.pipeline_ok") if result.ok else t("selftest.pipeline_failed"))
+    print()
+
+    print(t("selftest.phase_devices"))
+    measured = selftest_module.check_configured_devices(config, seconds=2.0)
+    silent: list[str] = []
+    if not measured:
+        print(t("selftest.no_devices"))
+    for side, device, level_db in measured:
+        caption = t("common.you") if side == "mic" else t("common.other")
+        if level_db == float("-inf"):
+            silent.append(caption)
+            print(t("selftest.device_silent", side=caption, device=device))
+        else:
+            print(
+                t("selftest.device_signal", side=caption, device=device, level=f"{level_db:.1f}")
+            )
+    print()
+
+    if not result.ok:
+        print(t("selftest.verdict_failed"))
+        return 1
+    if silent:
+        print(t("selftest.verdict_devices", sides=", ".join(sorted(set(silent)))))
+        return 2
+    print(t("selftest.verdict_ok"))
+    return 0
+
+
 def cmd_toggle(config: Config) -> int:
     from echolot.instance import InstanceLock, TOGGLE
 
@@ -219,6 +291,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--quit", action="store_true", help=t("cli.help_quit"))
     parser.add_argument("--devices", action="store_true", help=t("cli.help_devices"))
     parser.add_argument("--check", action="store_true", help=t("cli.help_check"))
+    parser.add_argument("--selftest", action="store_true", help=t("cli.help_selftest"))
     parser.add_argument("--record", type=float, metavar="SECONDS", help=t("cli.help_record"))
     args = parser.parse_args(argv)
 
@@ -226,6 +299,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_devices(config)
     if args.check:
         return cmd_check(config)
+    if args.selftest:
+        return cmd_selftest(config)
     if args.record is not None:
         return cmd_record(config, args.record)
     if args.quit:

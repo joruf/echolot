@@ -171,6 +171,24 @@ The buffer is rebuilt whenever layout, sample rate, block length or the device s
 (`Preroll.signature()`), since the ring holds already-rendered blocks. It restarts by itself after
 every recording, and while idle it follows device changes like a recording does.
 
+### Proving the recording works
+
+`selftest.py` records through the real pipeline and analyses the result, and both the `--selftest`
+command and `tests/test_end_to_end.py` use it. Two null sinks stand in for devices - a null sink's
+monitor is a source like any other, which is the only way to feed a *known* signal to the microphone
+side. Each side gets its own frequency (440 / 880 Hz) and each channel is then measured for both:
+a Goertzel filter, so no numeric library is needed and a single known frequency stays exact.
+
+Asking for a specific frequency in a specific channel is the whole value. "Is there sound" passes with
+the sides swapped, or with one side bleeding into both channels; this does not. Lossy formats are
+decoded back with ffmpeg before analysis, so opus - the default - is proven rather than assumed.
+`check_configured_devices` is the separate question: what the really configured devices deliver, where
+exact digital zero (-inf) means nothing is connected, as opposed to a quiet room's noise floor.
+
+`bootstrap_ui.ensure(interactive=False)` is used for every command line invocation. A blocking
+installer window on a terminal run hangs scripts and is indistinguishable from a recorder that does
+not work - which is exactly how it misled a diagnosis once.
+
 ### The levels dialog
 
 `ui/levels_window.py` lists every source with a live bar and a tick. It opens one capture per listed
@@ -345,7 +363,7 @@ plain presses would toggle twice — so only plain presses feed the detector.
 ## 11. Tests
 
 ```bash
-python3 -m pytest          # 162 tests; two need a working sound server, the rest do not
+python3 -m pytest          # 249 tests; two need a working sound server, the rest do not
 ```
 
 Covered: naming scheme and pairing, settings clamping and migration, device resolution including the

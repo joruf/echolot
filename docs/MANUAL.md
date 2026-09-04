@@ -151,6 +151,9 @@ lead-up available too.
 
 ## 5. Before an important conversation
 
+0. Or let it prove itself: `python3 run.py --selftest` records both sides with a test tone each
+   and says plainly whether they arrived — and, separately, whether your configured devices are
+   delivering anything at all.
 1. Right click → **Levels and devices …**
 2. Say something - the upper bar has to move.
 3. Play anything, e.g. a video - the lower bar has to move.

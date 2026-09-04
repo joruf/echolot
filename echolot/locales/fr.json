@@ -182,5 +182,20 @@
   "levels.rescan": "Relire les périphériques",
   "levels.footer": "Les changements prennent effet immédiatement, même pendant un enregistrement.",
   "levels.probe_failed": "<b>Aucun niveau de : {names}</b>",
-  "menu.levels": "Niveaux et périphériques..."
+  "menu.levels": "Niveaux et périphériques...",
+  "cli.help_selftest": "Enregistrer réellement les deux côtés et prouver que cela a fonctionné",
+  "selftest.title": "Autotest d'Echolot",
+  "selftest.phase_pipeline": "1) Chaîne d'enregistrement - périphériques virtuels, une tonalité chacun, canaux séparés",
+  "selftest.phase_devices": "2) Les périphériques configurés - écoute de 2 secondes",
+  "selftest.side_ok": "   OK   {side} : tonalité propre {level} dBFS, séparation {separation}",
+  "selftest.side_failed": "   ÉCHEC  {side} : {reason}",
+  "selftest.mixed": "disposition mixte",
+  "selftest.pipeline_ok": "   -> Les deux côtés sont enregistrés.",
+  "selftest.pipeline_failed": "   -> La chaîne d'enregistrement est défectueuse.",
+  "selftest.device_signal": "   signal   {side} : {device} ({level} dBFS)",
+  "selftest.device_silent": "   MUET     {side} : {device} - zéro numérique exact, rien n'arrive ici",
+  "selftest.no_devices": "   Aucun périphérique configuré.",
+  "selftest.verdict_ok": "Résultat : tout va bien, les deux côtés sont enregistrés.",
+  "selftest.verdict_devices": "Résultat : Echolot fonctionne, mais rien n'arrive de {sides}. Ce son n'atteint pas cette machine.",
+  "selftest.verdict_failed": "Résultat : la chaîne d'enregistrement n'a pas passé le test."
 }

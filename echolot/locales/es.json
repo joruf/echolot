@@ -182,5 +182,20 @@
   "levels.rescan": "Volver a buscar dispositivos",
   "levels.footer": "Los cambios se aplican de inmediato, también durante una grabación.",
   "levels.probe_failed": "<b>Sin nivel de: {names}</b>",
-  "menu.levels": "Niveles y dispositivos..."
+  "menu.levels": "Niveles y dispositivos...",
+  "cli.help_selftest": "Grabar de verdad ambos lados y demostrar que funcionó",
+  "selftest.title": "Autocomprobación de Echolot",
+  "selftest.phase_pipeline": "1) Cadena de grabación: dispositivos virtuales, un tono de prueba cada uno, canales separados",
+  "selftest.phase_devices": "2) Los dispositivos configurados: escuchando 2 segundos",
+  "selftest.side_ok": "   OK   {side}: tono propio {level} dBFS, separación {separation}",
+  "selftest.side_failed": "   ERROR  {side}: {reason}",
+  "selftest.mixed": "diseño mezclado",
+  "selftest.pipeline_ok": "   -> Ambos lados se están grabando.",
+  "selftest.pipeline_failed": "   -> La cadena de grabación está defectuosa.",
+  "selftest.device_signal": "   señal    {side}: {device} ({level} dBFS)",
+  "selftest.device_silent": "   MUDO     {side}: {device} - cero digital exacto, aquí no llega nada",
+  "selftest.no_devices": "   Ningún dispositivo configurado.",
+  "selftest.verdict_ok": "Resultado: todo correcto, ambos lados se graban.",
+  "selftest.verdict_devices": "Resultado: Echolot funciona, pero de {sides} no llega nada. Ese sonido no alcanza este equipo.",
+  "selftest.verdict_failed": "Resultado: la cadena de grabación no pasó la prueba."
 }
