@@ -35,7 +35,9 @@ echolot/
   notify.py                libnotify with notify-send and stdout fallbacks
   audio/
     devices.py             pactl: sources, default sink → its monitor
-    capture.py             one parec process per device, respawn, retarget
+    backend.py             the platform seam: list devices, name defaults, open a reader
+    pulse.py               PulseAudio/PipeWire: pactl and parec live here and nowhere else
+    capture.py             one reader per device, respawn, retarget
     group.py               several devices presented to the mixer as one side
     mixer.py               the timeline: two mono sides → one mixed or split stream
     encoder.py             ffmpeg process, PCM in through stdin
@@ -209,6 +211,19 @@ output monitor is proven to deliver nothing but exact zeros. In a guest that is 
 normal case, because the host's audio never reaches the guest, so the warning names the hypervisor
 and the two ways out. The notification is sent with critical urgency and no timeout: a bubble that
 fades after three seconds is how a 24 minute conversation ends up with one side missing.
+
+### The platform seam
+
+`audio/backend.py` is the whole of what a sound system has to provide: list the sources, name the
+default source and the default monitor, open a reader of raw mono PCM, and say what to listen to for
+changes. `audio/pulse.py` is that for PulseAudio/PipeWire and is the only module allowed to know the
+words `pactl` and `parec`; a Windows backend is a second file next to it.
+
+The seam sits where it does on purpose. A capture is mostly supervision - assembling blocks, noticing
+a dead stream, backing off, restarting, counting gaps, switching device without a gap - and none of
+that differs between sound systems. Only "give me the next bytes from this device" does, so only that
+is behind the seam. `backend.current()` resolves the platform lazily, so a backend can import the
+shared `Device` without a cycle.
 
 ## 5. Device handling
 

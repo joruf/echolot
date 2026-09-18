@@ -20,13 +20,13 @@ import threading
 import time
 from typing import Callable
 
-PAREC = "parec"
+from . import backend
 BACKOFF_SECONDS = (0.5, 1.0, 2.0, 4.0, 5.0)
 RETARGET_TIMEOUT = 2.0
 
 
 class _Stream:
-    """A single parec process reading from one device.
+    """One device being read, whatever the sound system underneath is.
 
     Blocks are only handed to the owner while `active` is set. A stream that is
     still warming up during a device change therefore produces no output yet.
@@ -52,37 +52,25 @@ class _Stream:
         self._on_block = on_block
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
-        self._process: subprocess.Popen | None = None
-        self._args = [
-            PAREC,
-            "--raw",
-            "-d", device,
-            "--format=s16le",
-            f"--rate={sample_rate}",
-            "--channels=1",
-            f"--latency-msec={latency_ms}",
-            "--client-name=Echolot",
-        ]
+        self._reader = None
+        self._sample_rate = sample_rate
+        self._latency_ms = latency_ms
 
     def start(self) -> None:
-        self._process = subprocess.Popen(
-            self._args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=0
+        self._reader = backend.current().open_reader(
+            self.device, sample_rate=self._sample_rate, latency_ms=self._latency_ms
         )
         self._thread = threading.Thread(target=self._read_loop, name=self.name, daemon=True)
         self._thread.start()
 
     def _read_loop(self) -> None:
-        process = self._process
-        if process is None or process.stdout is None:
+        reader = self._reader
+        if reader is None:
             return
-        stdout = process.stdout
         block_bytes = self.block_bytes
         pending = b""
         while not self._stop.is_set():
-            try:
-                chunk = stdout.read(block_bytes - len(pending))
-            except (OSError, ValueError):
-                break
+            chunk = reader.read(block_bytes - len(pending))
             if not chunk:
                 break
             pending += chunk
@@ -97,33 +85,19 @@ class _Stream:
 
     @property
     def alive(self) -> bool:
-        return self._process is not None and self._process.poll() is None
+        return self._reader is not None and self._reader.alive
 
     @property
     def returncode(self) -> int | None:
-        return self._process.poll() if self._process is not None else None
+        return self._reader.returncode if self._reader is not None else None
 
     def stop(self, timeout: float = 1.0) -> None:
         self._stop.set()
         self.active = False
-        process = self._process
-        if process is not None:
-            self.exit_code = process.poll()
-            if process.poll() is None:
-                process.terminate()
-                try:
-                    process.wait(timeout=timeout)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    try:
-                        process.wait(timeout=timeout)
-                    except subprocess.TimeoutExpired:
-                        pass
-            if process.stdout is not None:
-                try:
-                    process.stdout.close()
-                except OSError:
-                    pass
+        reader = self._reader
+        if reader is not None:
+            self.exit_code = reader.returncode
+            reader.close(timeout=timeout)
         if self._thread is not None:
             self._thread.join(timeout=timeout)
 
@@ -329,11 +303,5 @@ class CaptureProcess:
 
 
 def probe_available() -> bool:
-    """True when parec exists and can talk to the sound server."""
-    try:
-        result = subprocess.run(
-            [PAREC, "--version"], capture_output=True, text=True, timeout=6, check=False
-        )
-    except (OSError, subprocess.SubprocessError):
-        return False
-    return result.returncode == 0
+    """True when this machine's sound system can actually be recorded from."""
+    return backend.current().available()

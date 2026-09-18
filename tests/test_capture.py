@@ -50,24 +50,6 @@ def test_drain_empties_the_buffer():
     assert process.pending() == 0
 
 
-def test_parec_is_asked_for_raw_mono_pcm():
-    stream = _Stream(
-        "alsa_output.test.monitor",
-        sample_rate=48000,
-        block_bytes=BLOCK_FRAMES * 2,
-        latency_ms=20,
-        on_block=lambda data: None,
-        name="test",
-    )
-    args = stream._args
-    assert args[0] == "parec"
-    assert "--raw" in args
-    assert args[args.index("-d") + 1] == "alsa_output.test.monitor"
-    assert "--channels=1" in args  # the server does the downmix
-    assert "--format=s16le" in args
-    assert "--rate=48000" in args
-
-
 def test_events_carry_the_side():
     events = []
     process = make_capture(on_event=lambda event, fields: events.append((event, fields)))

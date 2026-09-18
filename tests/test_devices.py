@@ -10,7 +10,7 @@ import json
 
 import pytest
 
-from echolot.audio import devices
+from echolot.audio import devices, pulse
 
 SINK = "alsa_output.pci-0000_02_02.0.analog-stereo"
 MONITOR = f"{SINK}.monitor"
@@ -38,7 +38,7 @@ def pactl(monkeypatch):
         ("pactl", "get-default-sink"): f"{SINK}\n",
         ("pactl", "get-default-source"): f"{MIC}\n",
     }
-    monkeypatch.setattr(devices, "_run", lambda args: answers.get(tuple(args), ""))
+    monkeypatch.setattr(pulse, "_run", lambda args: answers.get(tuple(args), ""))
     return answers
 
 
@@ -78,7 +78,7 @@ def test_all_lists_several_devices_per_side(monkeypatch, pactl):
         + f"700\t{second_mic}\tPipeWire\ts16le 2ch 48000Hz\tSUSPENDED\n"
         + f"701\t{second_monitor}\tPipeWire\ts16le 2ch 48000Hz\tSUSPENDED\n"
     )
-    monkeypatch.setattr(devices, "_run", lambda args: answers.get(tuple(args), ""))
+    monkeypatch.setattr(pulse, "_run", lambda args: answers.get(tuple(args), ""))
 
     resolution = devices.resolve(devices.ALL, devices.ALL)
     assert set(resolution.mics) == {MIC, second_mic}
@@ -100,7 +100,7 @@ def test_a_ticked_selection_is_recorded_as_given(monkeypatch, pactl):
     answers[("pactl", "list", "short", "sources")] = (
         SHORT_SOURCES + f"700\t{second}\tPipeWire\ts16le 2ch 48000Hz\tSUSPENDED\n"
     )
-    monkeypatch.setattr(devices, "_run", lambda args: answers.get(tuple(args), ""))
+    monkeypatch.setattr(pulse, "_run", lambda args: answers.get(tuple(args), ""))
 
     resolution = devices.resolve([second, MIC], [MONITOR])
     assert resolution.mics == (second, MIC)
@@ -138,7 +138,7 @@ def test_resolve_reports_missing_monitor(pactl, monkeypatch):
     answers = dict(pactl)
     answers[("pactl", "list", "short", "sources")] = f"611\t{MIC}\tPipeWire\ts16le\tSUSPENDED\n"
     answers[("pactl", "-f", "json", "list", "sinks")] = "[]"
-    monkeypatch.setattr(devices, "_run", lambda args: answers.get(tuple(args), ""))
+    monkeypatch.setattr(pulse, "_run", lambda args: answers.get(tuple(args), ""))
 
     resolution = devices.resolve("auto", "auto")
     assert resolution.mic == MIC
@@ -152,7 +152,7 @@ def test_monitor_is_detected_without_json(pactl, monkeypatch):
     answers = dict(pactl)
     answers[("pactl", "-f", "json", "list", "sinks")] = "kaputt{"
     answers[("pactl", "-f", "json", "list", "sources")] = "auch kaputt"
-    monkeypatch.setattr(devices, "_run", lambda args: answers.get(tuple(args), ""))
+    monkeypatch.setattr(pulse, "_run", lambda args: answers.get(tuple(args), ""))
 
     resolution = devices.resolve("auto", "auto")
     assert resolution.speaker == MONITOR  # recognised by the .monitor convention
@@ -160,7 +160,7 @@ def test_monitor_is_detected_without_json(pactl, monkeypatch):
 
 
 def test_missing_pactl_is_not_fatal(monkeypatch):
-    monkeypatch.setattr(devices, "_run", lambda args: "")
+    monkeypatch.setattr(pulse, "_run", lambda args: "")
     resolution = devices.resolve("auto", "auto")
     assert resolution.complete is False
     assert resolution.problems

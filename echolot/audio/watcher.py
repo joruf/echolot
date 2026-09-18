@@ -16,12 +16,13 @@ import threading
 import time
 from typing import Callable
 
-from . import devices
+from . import backend, devices
 
 DEBOUNCE_SECONDS = 0.4
 POLL_SECONDS = 3.0
 RESTART_DELAY_SECONDS = 2.0
 
+#: Filled from the backend: not every sound system reports changes the same way.
 INTERESTING = ("on server", "on sink", "on source", "on card")
 
 
@@ -82,7 +83,7 @@ class DeviceWatcher:
         while not self._stop.is_set():
             try:
                 self._process = subprocess.Popen(
-                    ["pactl", "subscribe"],
+                    getattr(backend.current(), "WATCH_COMMAND", ["pactl", "subscribe"]),
                     stdout=subprocess.PIPE,
                     stderr=subprocess.DEVNULL,
                     text=True,
@@ -98,7 +99,8 @@ class DeviceWatcher:
             for line in stream:
                 if self._stop.is_set():
                     return
-                if any(marker in line for marker in INTERESTING):
+                markers = getattr(backend.current(), "WATCH_MARKERS", INTERESTING)
+                if any(marker in line for marker in markers):
                     self._wake.set()
             # subscribe ended: the server restarted or died. Re-check devices
             # immediately, then reconnect.

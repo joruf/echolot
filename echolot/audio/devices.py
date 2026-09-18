@@ -14,32 +14,18 @@ cosmetic, a missing device is not.
 
 from __future__ import annotations
 
-import json
-import subprocess
 from dataclasses import dataclass
 
 from ..i18n import t
+from .backend import Device, current as _backend
 
-PACTL_TIMEOUT = 6
+__all__ = ["ALL", "AUTO", "Device", "Resolution", "resolve", "list_sources"]
 
 #: Record every device of the matching kind - the default, so that no choice can
 #: be wrong and nothing is missed.
 ALL = "all"
 #: Follow whatever the system default is right now.
 AUTO = "auto"
-
-
-@dataclass(frozen=True)
-class Device:
-    """A capturable source."""
-
-    name: str
-    description: str
-    is_monitor: bool
-    state: str = ""
-
-    def label(self) -> str:
-        return self.description or self.name
 
 
 @dataclass(frozen=True)
@@ -75,115 +61,21 @@ class Resolution:
         return self.mics + self.speakers
 
 
-def _run(args: list[str]) -> str:
-    try:
-        result = subprocess.run(
-            args, capture_output=True, text=True, timeout=PACTL_TIMEOUT, check=False
-        )
-    except (OSError, subprocess.SubprocessError):
-        return ""
-    return result.stdout if result.returncode == 0 else ""
 
-
-def _short_list(kind: str) -> list[tuple[str, str]]:
-    """`pactl list short <kind>` reduced to (name, state) pairs."""
-    out: list[tuple[str, str]] = []
-    for line in _run(["pactl", "list", "short", kind]).splitlines():
-        fields = line.split("\t")
-        if len(fields) >= 2 and fields[1]:
-            out.append((fields[1], fields[-1].strip() if len(fields) >= 5 else ""))
-    return out
-
-
-def _json_list(kind: str) -> list[dict]:
-    """Best effort JSON listing; empty list when pactl output is unusable."""
-    raw = _run(["pactl", "-f", "json", "list", kind])
-    if not raw.strip():
-        return []
-    try:
-        data = json.loads(raw)
-    except ValueError:
-        return []
-    return data if isinstance(data, list) else []
-
-
-def monitor_sources() -> dict[str, str]:
-    """Map monitor source name -> owning sink name, straight from the sinks."""
-    mapping: dict[str, str] = {}
-    for sink in _json_list("sinks"):
-        monitor = sink.get("monitor_source")
-        name = sink.get("name")
-        if isinstance(monitor, str) and monitor and isinstance(name, str):
-            mapping[monitor] = name
-    return mapping
+# -- what the sound system says, whichever one it is ---------------------
 
 
 def list_sources() -> list[Device]:
     """All capturable sources: real inputs first, then monitors."""
-    labels = {
-        entry.get("name"): entry.get("description", "")
-        for entry in _json_list("sources")
-        if isinstance(entry.get("name"), str)
-    }
-    monitors = monitor_sources()
-
-    devices: list[Device] = []
-    for name, state in _short_list("sources"):
-        is_monitor = name in monitors or name.endswith(".monitor")
-        devices.append(
-            Device(
-                name=name,
-                description=str(labels.get(name) or _friendly_name(name)),
-                is_monitor=is_monitor,
-                state=state,
-            )
-        )
-    devices.sort(key=lambda device: (device.is_monitor, device.label().lower()))
-    return devices
-
-
-def _friendly_name(name: str) -> str:
-    """Readable fallback label when no description is available."""
-    text = name.split(".")[-1] if "." in name else name
-    if name.endswith(".monitor"):
-        text = t(
-            "common.monitor_prefix", name=name.removesuffix(".monitor").split(".")[-1]
-        )
-    return text.replace("_", " ").replace("-", " ").strip() or name
-
-
-def default_sink() -> str | None:
-    value = _run(["pactl", "get-default-sink"]).strip()
-    return value or None
+    return _backend().list_sources()
 
 
 def default_source() -> str | None:
-    value = _run(["pactl", "get-default-source"]).strip()
-    return value or None
+    return _backend().default_source()
 
 
 def default_monitor(sources: list[Device] | None = None) -> str | None:
-    """Monitor source belonging to the current default sink.
-
-    Falls back to `<sink>.monitor` (the universal naming convention) and, as a
-    last resort, to any monitor source that exists - recording the wrong output
-    is still better than recording nothing at all.
-    """
-    sink = default_sink()
-    known = {name for name, _ in _short_list("sources")}
-
-    if sink:
-        for monitor, owner in monitor_sources().items():
-            if owner == sink and monitor in known:
-                return monitor
-        guess = f"{sink}.monitor"
-        if guess in known:
-            return guess
-
-    for device in sources if sources is not None else list_sources():
-        if device.is_monitor:
-            return device.name
-    return None
+    return _backend().default_monitor(sources)
 
 
 def resolve(mic_setting: str, speaker_setting: str) -> Resolution:
