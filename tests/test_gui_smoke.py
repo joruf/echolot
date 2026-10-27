@@ -294,3 +294,35 @@ def test_all_available_does_not_imply_the_foreign_devices(app, config):
         assert row.check.get_active() is (not row.foreign)
     window.destroy()
     pump()
+
+
+def test_the_devices_submenu_shows_live_levels_of_the_selected_tracks(app):
+    """Opening the submenu starts the meters, closing it stops them again."""
+    from echolot.ui.menu import AppMenu  # noqa: F401 - the type under test
+
+    menu = Gtk.Menu()
+    app.menu.populate(menu)
+    devices_item = next(
+        child for child in menu.get_children()
+        if isinstance(child, Gtk.MenuItem) and child.get_label() == t("menu.devices")
+    )
+    submenu = devices_item.get_submenu()
+    texts = [
+        strip_markup(child.get_child().get_label())
+        for child in submenu.get_children()
+        if isinstance(child, Gtk.MenuItem) and isinstance(child.get_child(), Gtk.Label)
+        and child.get_child().get_use_markup()
+    ]
+    assert any(t("menu.meters_heading") in text for text in texts)
+
+    submenu.emit("map")
+    try:
+        assert app.menu._meters, "no meter started for the selected tracks"
+        pump()
+        rows = [strip_markup(item.get_child().get_label()) for _m, item, _c, _l in app.menu._meters]
+        assert all("dB" in row or "---" in row or t("menu.meter_bridge_waiting") in row
+                   or t("menu.meter_failed") in row for row in rows), rows
+    finally:
+        submenu.emit("unmap")
+    assert not app.menu._meters
+    menu.destroy()

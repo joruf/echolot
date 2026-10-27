@@ -199,5 +199,18 @@
   "selftest.verdict_devices": "Ergebnis: Echolot arbeitet, aber von {sides} kommt nichts an. Der Ton erreicht diesen Rechner nicht.",
   "selftest.verdict_failed": "Ergebnis: die Aufnahmekette hat den Test nicht bestanden.",
   "levels.kind_input": "Eingang",
-  "levels.kind_output": "Ausgabe"
+  "levels.kind_output": "Ausgabe",
+  "bridge.device_label": "Host-Ton (Stream vom Host)",
+  "bridge.not_connected": "Nach {seconds} Sekunden kommt kein Ton vom Host. Läuft host_send.py auf dem Host und ist das Headset verbunden? Die Aufnahme läuft weiter - ohne die Gegenseite, bis sich der Host verbindet.",
+  "bridge.no_headset": "Der Host hat sich verbunden, aber kein Wiedergabegerät des Headsets gefunden. Ist das Headset verbunden und in der Besprechungs-App als Lautsprecher gewählt? Die Aufnahme läuft weiter.",
+  "bridge.bad_header": "Der Host hat etwas gesendet, das Echolot nicht lesen kann ({peer}). Die Aufnahme läuft ohne den Host-Ton weiter.",
+  "bridge.connected": "Host-Ton verbunden: {device}",
+  "bridge.lost": "Die Verbindung zum Host-Ton ist abgebrochen. Die Aufnahme läuft weiter; die Gegenseite bleibt stumm, bis sich der Host wieder verbindet.",
+  "bridge.port_busy": "Port {port} für den Host-Ton ist nicht verfügbar ({error}). Die Gegenseite vom Host kann nicht empfangen werden.",
+  "session.side_no_audio_bridge": "Der Host-Ton ist verbunden, liefert aber seit {duration} nur Stille. Ist das Headset in der Besprechungs-App als Lautsprecher gewählt, und wurde host_send.py mit --device für dieses Headset gestartet?",
+  "session.side_no_audio_bridge_waiting": "Von {sides} kommt nichts an - seit {duration} vollkommene Stille, und der Host streamt nicht. Starte host_send.py auf dem Host (siehe README).",
+  "menu.meters_heading": "Live-Pegel der gewählten Tonspuren:",
+  "menu.meters_none": "nichts gewählt",
+  "menu.meter_failed": "kein Zugriff",
+  "menu.meter_bridge_waiting": "warte auf Host"
 }

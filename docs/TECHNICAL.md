@@ -375,10 +375,42 @@ Double clicks are detected from single click events in both backends, using the 
 `gtk-double-click-time` (400 ms). GTK also emits `_2BUTTON_PRESS`, but acting on that *and* on the
 plain presses would toggle twice — so only plain presses feed the detector.
 
+## 10b. Host bridge
+
+`audio/bridge.py`. In a VMware guest the other side's audio exists only on the host, so a sender
+there (`host_send.py`, WASAPI loopback) connects **out** to the guest and streams it. Echolot models
+this as a pseudo device `echolot-host-bridge` (an output monitor) so everything above the backend —
+resolution, `SourceGroup` summing, supervision, speech log, levels dialog — is unchanged. Only the
+reader differs.
+
+* **Hub** — one listener, one active connection (a newer one replaces the older), any number of
+  readers (fan-out: the levels dialog next to a recording). The listener exists only while at least
+  one reader is open, so an idle Echolot has no open port. Peers must be loopback or private.
+* **Wire format** — one JSON header line (`rate`, `channels`, `format: s16le`, `device`,
+  `host_time`), then raw interleaved s16le. The sender pads silence, so the stream is on the wall
+  clock. A header that is missing (host found no headset), unreadable or out of range is reported
+  as `no_headset` / `bad_header`.
+* **Reader** — mono at the recording rate (average downmix; linear / area-average resampling in
+  pure Python, no numpy). It never ends by itself and never leaves a hole: with no host, or one that
+  stalls for 0.5 s, it hands out silence paced by the monotonic clock, so the mixer sees an ordinary
+  quiet monitor.
+* **Log events** — `bridge_connected` (rate, device, peer, `host_clock_offset_s`),
+  `bridge_disconnected`, `bridge_no_headset`, `bridge_bad_header`, `bridge_not_connected` (nothing
+  within 3 s). Each also produces a notification; a silent but connected bridge gets its own message.
+* **Settings** — `bridge.mode` (`off` by default; `on`; `auto` = hypervisor is VMware) and
+  `bridge.port`. Applied by `Config.apply_bridge()`; until then the bridge is off, so tests and
+  tools never see the extra device by accident.
+
+### Live meters
+
+`ui/meter.py`: the *Devices* submenu starts one short-lived `CaptureProcess` per selected device
+when it is mapped and stops them when it is unmapped or the menu hides. They are independent of the
+recording pipeline, so they work idle, paused and recording.
+
 ## 11. Tests
 
 ```bash
-python3 -m pytest          # 249 tests; two need a working sound server, the rest do not
+python3 -m pytest          # 285 tests; two need a working sound server, the rest do not
 ```
 
 Covered: naming scheme and pairing, settings clamping and migration, device resolution including the

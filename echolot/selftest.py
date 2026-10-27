@@ -32,6 +32,8 @@ from array import array
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .audio import bridge as bridge_module
+
 MIC_HZ = 440
 OTHER_HZ = 880
 #: Its own tone must be this much louder than the other side's for a channel to
@@ -406,6 +408,8 @@ def check_configured_devices(config, seconds: float = 2.0) -> list[tuple[str, st
 
 def _peak_db(device: str, seconds: float) -> float:
     """Loudest sample on a device over a short listen, in dBFS."""
+    if device == bridge_module.DEVICE:
+        return _peak_db_bridge(seconds)
     try:
         process = subprocess.Popen(
             [
@@ -439,7 +443,26 @@ def _peak_db(device: str, seconds: float) -> float:
         except subprocess.TimeoutExpired:
             process.kill()
 
-    raw = b"".join(chunks)
+    return _peak_of(b"".join(chunks))
+
+
+def _peak_db_bridge(seconds: float) -> float:
+    """Listen on the host bridge: opens the port, so the host connects meanwhile."""
+    try:
+        reader = bridge_module.open_reader(sample_rate=48000)
+    except OSError:
+        return -math.inf
+    chunks: list[bytes] = []
+    deadline = time.monotonic() + seconds
+    try:
+        while time.monotonic() < deadline:
+            chunks.append(reader.read(1920))
+    finally:
+        reader.close()
+    return _peak_of(b"".join(chunks))
+
+
+def _peak_of(raw: bytes) -> float:
     if len(raw) < 2:
         return -math.inf
     samples = array("h")

@@ -16,7 +16,7 @@ After login the icon sits in the panel and does nothing until you tell it to.
 | Icon | Meaning |
 |------|---------|
 | blue sonar | ready, nothing is being recorded |
-| **blinking red** | recording |
+| **red** | recording |
 | amber with pause bars | paused |
 | red with `!` | a problem - hover for the tooltip |
 
@@ -48,6 +48,9 @@ Quit
 
 * **Pause / Resume** — stops writing without closing the file. The pause leaves no gap in the
   recording; it is noted in the log as `pause` / `resume`.
+* **Devices** also shows a live bar for each selected track, so you can see before a conversation
+  which of them carries sound. `---` = nothing arrives; `waiting for host` = the host audio bridge
+  has no sender yet.
 * **Level rows** — update live while the menu is open. Two moving bars mean both sides are being
   heard.
 * **Levels and devices …** — one window with a live bar for **every** input and every output, each
@@ -57,8 +60,9 @@ Quit
 * **In a virtual machine** — if the other side stays silent, Echolot tells you after 20 seconds and
   says why: audio playing on the **host** never reaches the guest. Either hold the conversation
   inside the virtual machine, or route the host output into the virtual machine's audio input
-  (on Windows: *Stereo Mix* or a virtual cable, selected as the VM's sound input). See the README
-  for the exact steps.
+  (on Windows: *Stereo Mix* or a virtual cable, selected as the VM's sound input). With a VMware
+  guest on a Windows host the host audio bridge does this for you: start `host_send.py` on the
+  host (see the README) and *Host audio* appears as an output. See the README for the exact steps.
 
 * **Devices** — by default *All available* on both sides: every input and every output monitor is
   recorded at once, so nothing has to be chosen and audio on a second output is not missed. Pick one

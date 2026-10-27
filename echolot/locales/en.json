@@ -199,5 +199,18 @@
   "selftest.verdict_devices": "Result: Echolot works, but nothing arrives from {sides}. That sound does not reach this machine.",
   "selftest.verdict_failed": "Result: the recording chain did not pass the test.",
   "levels.kind_input": "input",
-  "levels.kind_output": "output"
+  "levels.kind_output": "output",
+  "bridge.device_label": "Host audio (stream from the host)",
+  "bridge.not_connected": "No audio from the host after {seconds} seconds. Is host_send.py running on the host with the headset connected? Recording continues - without the other side until the host connects.",
+  "bridge.no_headset": "The host connected but found no headset playback device. Is the headset connected and the speaker in the meeting app? Recording continues.",
+  "bridge.bad_header": "The host sent something Echolot cannot read ({peer}). Recording continues without the host audio.",
+  "bridge.connected": "Host audio connected: {device}",
+  "bridge.lost": "The connection to the host audio was lost. Recording continues; the other side stays silent until the host reconnects.",
+  "bridge.port_busy": "Port {port} for the host audio is not available ({error}). The other side cannot be received from the host.",
+  "session.side_no_audio_bridge": "The host audio is connected but has been delivering only silence for {duration}. Is the headset the speaker selected in the meeting app, and was host_send.py started with --device for that headset?",
+  "session.side_no_audio_bridge_waiting": "Nothing is arriving from {sides} - complete silence for {duration}, and the host is not streaming. Start host_send.py on the host (see the README).",
+  "menu.meters_heading": "Live level of the selected tracks:",
+  "menu.meters_none": "nothing selected",
+  "menu.meter_failed": "no access",
+  "menu.meter_bridge_waiting": "waiting for host"
 }

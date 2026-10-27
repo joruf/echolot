@@ -18,6 +18,7 @@ import subprocess
 import threading
 
 from ..i18n import t
+from . import bridge
 from .backend import Device
 
 NAME = "pulseaudio"
@@ -87,6 +88,10 @@ def list_sources() -> list[Device]:
                 state=state,
             )
         )
+    if bridge.enabled():
+        # Not a sound server source, but recorded like one: the other side's audio
+        # as the host streams it in. See bridge.py for why a guest needs this.
+        devices.append(bridge.device())
     devices.sort(key=lambda device: (device.is_monitor, device.label().lower()))
     return devices
 
@@ -198,6 +203,8 @@ class ParecReader:
 
 def open_reader(device: str, *, sample_rate: int, channels: int = 1, latency_ms: int = 20):
     """Start reading from a device. Raises OSError when the tool is missing."""
+    if device == bridge.DEVICE:
+        return bridge.open_reader(sample_rate=sample_rate)
     return ParecReader(
         device, sample_rate=sample_rate, channels=channels, latency_ms=latency_ms
     )

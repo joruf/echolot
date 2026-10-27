@@ -248,6 +248,7 @@ class EcholotApp:
         # The menu and the tooltip are rebuilt anyway, so a language change needs
         # nothing more than this.
         self.config.apply_language()
+        self.config.apply_bridge()
         self._apply_state(self.recorder.state)
         self.recorder.apply_device_settings()
         self.recorder.apply_preroll_settings()

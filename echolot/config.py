@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from . import i18n, paths
+from .audio import bridge
 from .audio.devices import ALL, AUTO as DEVICE_AUTO
 from .audio.mixer import LAYOUT_MIX, LAYOUTS, channels_for
 from .audio.preroll import MAX_MINUTES as MAX_PREROLL_MINUTES
@@ -22,7 +23,7 @@ AUTO = DEVICE_AUTO
 
 #: Bumped when a stored setting needs to be reinterpreted rather than merely
 #: complemented. See `_migrate`.
-SETTINGS_VERSION = 2
+SETTINGS_VERSION = 3
 
 DEFAULTS: dict[str, Any] = {
     "version": SETTINGS_VERSION,
@@ -55,8 +56,17 @@ DEFAULTS: dict[str, Any] = {
         "speaker": ALL,
         "follow_default": True,  # take in devices that appear later
     },
+    "bridge": {
+        # The other side's audio, streamed in from the host by host_send.py.
+        # off = nothing is opened (default: the bridge needs a sender program on
+        # the host). on = offer it as a source; auto = on inside VMware only.
+        # The port is only open while recording (or while the pre-roll is on).
+        "mode": "off",
+        "port": bridge.DEFAULT_PORT,
+    },
     "tray": {
-        "blink": True,
+        # Off: a steady red icon says "recording" without flickering in the panel.
+        "blink": False,
         "blink_interval_ms": 700,
     },
     "warnings": {
@@ -93,6 +103,7 @@ _RANGES: dict[str, tuple[float, float]] = {
     "audio.preroll_minutes": (0, MAX_PREROLL_MINUTES),
     "warnings.silent_side_seconds": (0, 600),
     "audio.block_ms": (10, 100),
+    "bridge.port": (1024, 65535),
     "tray.blink_interval_ms": (200, 5000),
     "vad.threshold_db": (-90.0, -5.0),
     "vad.min_segment_ms": (0, 5000),
@@ -109,6 +120,7 @@ _INT_KEYS = (
     "audio.block_ms",
     "warnings.silent_side_seconds",
     "audio.sample_rate",
+    "bridge.port",
     "tray.blink_interval_ms",
     "vad.min_segment_ms",
     "vad.hangover_ms",
@@ -175,13 +187,19 @@ class Config:
     def _migrate(self, stored_version: int) -> bool:
         """Reinterpret settings whose meaning changed. True if anything moved.
 
-        Version 2 records every device by default. A file that still says AUTO
+        Version 3 stops the tray icon from blinking. Version 2 records every
+        device by default. A file that still says AUTO
         for a side never chose it - it inherited the old default - so it is moved
         along; a side naming one device by hand is left alone.
         """
         if stored_version >= SETTINGS_VERSION:
             return False
         moved = False
+        if stored_version < 3 and self.get("tray.blink"):
+            # The icon used to blink by default; it now just lights up red. A file
+            # that still says true inherited the old default, so it is moved along.
+            self.set("tray.blink", False)
+            moved = True
         for key in ("devices.mic", "devices.speaker"):
             if self.get(key) == DEVICE_AUTO:
                 self.set(key, ALL)
@@ -251,6 +269,10 @@ class Config:
     def language(self) -> str:
         return str(self.get("language", i18n.DEFAULT_LANGUAGE))
 
+    def apply_bridge(self) -> None:
+        """Hand the host-bridge settings to the audio layer."""
+        bridge.configure(str(self.get("bridge.mode")), int(self.get("bridge.port")))
+
     def apply_language(self) -> None:
         """Make the translator use the configured language."""
         i18n.set_language(self.language)
@@ -284,6 +306,11 @@ class Config:
             "language",
             language if language in i18n.language_codes() else i18n.DEFAULT_LANGUAGE,
         )
+
+        mode = self.get("bridge.mode")
+        # JSON users write true/false as often as they write the words.
+        mode = {True: "on", False: "off"}.get(mode, str(mode).strip().lower())
+        self.set("bridge.mode", mode if mode in bridge.MODES else "off")
 
         rate = self.get("audio.sample_rate")
         try:

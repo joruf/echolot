@@ -199,5 +199,18 @@
   "selftest.verdict_devices": "Resultado: Echolot funciona, pero de {sides} no llega nada. Ese sonido no alcanza este equipo.",
   "selftest.verdict_failed": "Resultado: la cadena de grabación no pasó la prueba.",
   "levels.kind_input": "entrada",
-  "levels.kind_output": "salida"
+  "levels.kind_output": "salida",
+  "bridge.device_label": "Audio del anfitrión (flujo desde el anfitrión)",
+  "bridge.not_connected": "Pasados {seconds} segundos no llega audio del anfitrión. ¿Está host_send.py en marcha en el anfitrión y los auriculares conectados? La grabación continúa, sin el otro lado hasta que el anfitrión se conecte.",
+  "bridge.no_headset": "El anfitrión se conectó pero no encontró ningún dispositivo de reproducción de los auriculares. ¿Están conectados y elegidos como altavoz en la aplicación de la reunión? La grabación continúa.",
+  "bridge.bad_header": "El anfitrión envió algo que Echolot no puede leer ({peer}). La grabación continúa sin el audio del anfitrión.",
+  "bridge.connected": "Audio del anfitrión conectado: {device}",
+  "bridge.lost": "Se perdió la conexión con el audio del anfitrión. La grabación continúa; el otro lado queda en silencio hasta que el anfitrión vuelva a conectarse.",
+  "bridge.port_busy": "El puerto {port} para el audio del anfitrión no está disponible ({error}). No se puede recibir el otro lado desde el anfitrión.",
+  "session.side_no_audio_bridge": "El audio del anfitrión está conectado pero solo entrega silencio desde hace {duration}. ¿Están los auriculares elegidos como altavoz en la aplicación de la reunión y se inició host_send.py con --device para esos auriculares?",
+  "session.side_no_audio_bridge_waiting": "No llega nada de {sides}: silencio total desde hace {duration} y el anfitrión no está transmitiendo. Inicia host_send.py en el anfitrión (consulta el README).",
+  "menu.meters_heading": "Nivel en vivo de las pistas elegidas:",
+  "menu.meters_none": "nada elegido",
+  "menu.meter_failed": "sin acceso",
+  "menu.meter_bridge_waiting": "esperando al anfitrión"
 }

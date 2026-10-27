@@ -199,5 +199,18 @@
   "selftest.verdict_devices": "Résultat : Echolot fonctionne, mais rien n'arrive de {sides}. Ce son n'atteint pas cette machine.",
   "selftest.verdict_failed": "Résultat : la chaîne d'enregistrement n'a pas passé le test.",
   "levels.kind_input": "entrée",
-  "levels.kind_output": "sortie"
+  "levels.kind_output": "sortie",
+  "bridge.device_label": "Audio de l'hôte (flux depuis l'hôte)",
+  "bridge.not_connected": "Aucun son de l'hôte après {seconds} secondes. host_send.py tourne-t-il sur l'hôte et le casque est-il connecté ? L'enregistrement continue, sans l'autre côté tant que l'hôte n'est pas connecté.",
+  "bridge.no_headset": "L'hôte s'est connecté mais n'a trouvé aucun périphérique de lecture du casque. Le casque est-il connecté et choisi comme haut-parleur dans l'application de réunion ? L'enregistrement continue.",
+  "bridge.bad_header": "L'hôte a envoyé quelque chose qu'Echolot ne peut pas lire ({peer}). L'enregistrement continue sans le son de l'hôte.",
+  "bridge.connected": "Audio de l'hôte connecté : {device}",
+  "bridge.lost": "La connexion au son de l'hôte a été perdue. L'enregistrement continue ; l'autre côté reste silencieux jusqu'à la reconnexion de l'hôte.",
+  "bridge.port_busy": "Le port {port} pour le son de l'hôte n'est pas disponible ({error}). L'autre côté ne peut pas être reçu depuis l'hôte.",
+  "session.side_no_audio_bridge": "Le son de l'hôte est connecté mais ne fournit que du silence depuis {duration}. Le casque est-il choisi comme haut-parleur dans l'application de réunion et host_send.py a-t-il été lancé avec --device pour ce casque ?",
+  "session.side_no_audio_bridge_waiting": "Rien n'arrive de {sides} : silence complet depuis {duration}, et l'hôte ne diffuse pas. Lancez host_send.py sur l'hôte (voir le README).",
+  "menu.meters_heading": "Niveau en direct des pistes choisies :",
+  "menu.meters_none": "rien de choisi",
+  "menu.meter_failed": "pas d'accès",
+  "menu.meter_bridge_waiting": "attente de l'hôte"
 }

@@ -44,7 +44,7 @@ Interface available in **English** (default), **German**, **Spanish** and **Fren
 | **Both sides in one file** | your microphone and the system output (the other person), recorded together |
 | **Everything by default** | every input and every output monitor at once, so no device choice can be wrong and audio on a secondary output is not missed |
 | **Double click to record** | one gesture in the tray starts and stops it; a single click deliberately does nothing |
-| **Blinking icon** | while a recording runs the icon blinks red — it is never unclear whether you are recording |
+| **Red icon** | while a recording runs the icon lights up red — it is never unclear whether you are recording |
 | **Who spoke when** | measured per side *before* mixing and written to a JSON Lines log, so a transcript can attribute speakers without a diarisation model |
 | **Pre-roll** | optionally keeps the last 1–5 minutes in RAM, so a recording can begin *before* you pressed anything |
 | **Survives trouble** | device switches, dying capture processes and missing microphones degrade the recording instead of ending it, and every incident lands in the log |
@@ -97,7 +97,7 @@ python3 run.py --check
 |--------|--------|
 | **Double click** the icon | starts the recording, and stops it again |
 | **Right click** | the menu (below) |
-| Icon **blinks red** | a recording is running |
+| Icon **red** | a recording is running |
 | Icon **amber, pause bars** | paused |
 | Icon **red with `!`** | something is wrong — the tooltip and the notification say what |
 | Hover the icon | elapsed time, both levels, devices in use, file name, free space |
@@ -171,6 +171,21 @@ that. Echolot detects the guest (`systemd-detect-virt`, DMI as a fallback) and s
 seconds**, with the two ways out, instead of leaving it to be discovered when the conversation is
 over.
 
+* **Stream the host's audio in (VMware, Windows host) — optional, needs a program on the host.** A small sender on
+  the host captures what the headset plays (WASAPI loopback: no administrator rights, no driver) and
+  sends it to the guest over TCP. Echolot offers it as one more output, **Host audio (stream from the
+  host)**, which *record everything* picks up like any monitor. The sender is
+  `host_send.py` in the shared folder `audio-bridge/`; start it once per Windows session, with the
+  headset connected and chosen as the speaker in Teams:
+  `pyw -3.12 …\audio-bridge\host_send.py --loop --device Jabra` (after `pip install PyAudioWPatch`).
+  Without `--device` it takes Windows' default output, which is usually not the headset.
+  * The port (default `8765`) is open **only while recording** (or while the pre-roll is on), only
+    private networks may connect, and a host that does not connect within 3 seconds is announced
+    instead of recording silence. It is **off by default**; settings: `bridge.mode` (`off`, `on`,
+    `auto` = on inside VMware) and `bridge.port` in `settings.json`.
+  * Your own voice is the guest's input, i.e. the host's **default recording device** — set it to
+    the headset (or the laptop microphone) in Windows. Everything the guest sees as an input is
+    recorded; the host's other microphones are not visible to the guest.
 * **Hold the conversation inside the guest** — Teams, Meet or Zoom in a browser here. Nothing to
   configure; both sides are captured as usual.
 * **Route the host output into the guest's audio input.** On a Windows host: enable *Stereo Mix* in
@@ -180,6 +195,20 @@ over.
   keep your own voice as well, mix the microphone into that device on the host — or pass a USB
   microphone through to the guest, so the two sides stay on separate devices and therefore on
   separate channels.
+
+### Finding out which channel carries the external sound
+
+`python3 tools/listen_all.py` listens on **every** source at once (all inputs and monitors, plus
+`--bridge` for the host stream) and prints each one's level every two seconds; at the end it names
+the channels that carried sound. Run it, play something (a Teams test call), and read which line
+lights up. `--save DIR` keeps one WAV per channel. Do not run it while Echolot records.
+
+### Live levels in the tray menu
+
+*Devices* in the tray menu starts with **Live level of the selected tracks**: one bar per device
+that would be recorded, updating while the submenu is open — also when nothing is being recorded.
+Open it before a conversation and see which track carries sound; `---` means nothing arrives, and
+`waiting for host` is the host bridge without a connected sender.
 
 ### Levels and devices
 
@@ -357,7 +386,7 @@ later version are filled in and written back once — the tray always comes up.
 | `devices.mic` | `"all"` | `all` = every input, `auto` = the system default, or one source name |
 | `devices.speaker` | `"all"` | `all` = every output monitor, `auto` = monitor of the default sink, or one source name |
 | `devices.follow_default` | `true` | take in devices that appear later, during a recording too |
-| `tray.blink` | `true` | icon blinks while recording |
+| `tray.blink` | `false` | icon blinks instead of staying red while recording |
 | `tray.blink_interval_ms` | `700` | 200–5000 |
 | `warnings.silent_side_seconds` | `20` | say so **during** the conversation when a side delivers nothing but exact zeros; 0 = off |
 | `notifications.on_start` | `true` | message when a recording starts |
@@ -522,7 +551,7 @@ echolot/
     settings_window.py     settings dialog
 resources/                 icons and the .desktop template
 docs/                      MANUAL, TECHNICAL, TRANSCRIPT
-tests/                     249 tests
+tests/                     285 tests
 ```
 
 ## 15. Tests
@@ -531,7 +560,7 @@ tests/                     249 tests
 python3 -m pytest
 ```
 
-249 tests. The end-to-end recordings and a few device tests need a working sound server and skip
+285 tests. The end-to-end recordings and a few device tests need a working sound server and skip
 themselves without one; the GUI smoke tests skip themselves without a display. Everything else runs
 anywhere.
 

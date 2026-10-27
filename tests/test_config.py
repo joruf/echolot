@@ -13,7 +13,7 @@ def test_defaults_are_complete():
     cfg = Config()
     assert cfg.get("audio.format") == "opus"
     assert cfg.get("devices.mic") == ALL  # record everything by default
-    assert cfg.get("tray.blink") is True
+    assert cfg.get("tray.blink") is False
     assert cfg.get("vad.hangover_ms") == 400
 
 
@@ -204,7 +204,19 @@ def test_a_current_file_is_not_migrated_again(tmp_path):
     Config(path=target).save()
     again = Config(path=target).load()
     assert again.needs_migration is False
-    assert again.get("version") == 2
+    assert again.get("version") == 3
+
+
+def test_the_old_blinking_default_is_switched_off_once(tmp_path):
+    """Version 2 files said blink: true without anyone choosing it."""
+    target = tmp_path / "settings.json"
+    target.write_text(json.dumps({"version": 2, "tray": {"blink": True}}), encoding="utf-8")
+    cfg = Config(path=target).load()
+    assert cfg.get("tray.blink") is False
+    assert cfg.needs_migration is True
+    cfg.set("tray.blink", True)  # a deliberate choice made afterwards stays
+    cfg.save()
+    assert Config(path=target).load().get("tray.blink") is True
 
 
 def test_recordings_dir_defaults_to_downloads_subfolder(tmp_path):

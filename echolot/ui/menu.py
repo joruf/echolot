@@ -16,13 +16,17 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk  # noqa: E402
 
 from .. import paths
+from ..audio import bridge
 from ..audio import devices as devices_module
 from ..audio.devices import ALL
 from ..config import AUTO
 from ..i18n import t
 from ..session import State, format_duration
+from .meter import Meter
 
 LEVEL_REFRESH_MS = 200
+METER_REFRESH_MS = 150
+METER_LABEL_CHARS = 24
 BAR_WIDTH = 12
 BAR_FLOOR_DB = -60.0
 
@@ -58,6 +62,9 @@ class AppMenu:
         self.app = app
         self._level_items: tuple[Gtk.MenuItem, Gtk.MenuItem] | None = None
         self._level_source: int | None = None
+        # Live rows of the Devices submenu: (meter, row, caption, label).
+        self._meters: list[tuple[Meter, Gtk.MenuItem, str, str]] = []
+        self._meter_source: int | None = None
 
     # -- assembly -------------------------------------------------------
 
@@ -155,7 +162,69 @@ class AppMenu:
 
     def _on_hide(self, _menu: Gtk.Menu) -> None:
         self._stop_level_refresh()
+        self._stop_meters()
         self._level_items = None
+
+    # -- live levels of the selected tracks -------------------------------
+
+    def _meter_rows(self, sources: list) -> tuple[list[Gtk.MenuItem], list[tuple]]:
+        """One row per selected device, and what is needed to feed it.
+
+        The captures are not opened here: the menu is rebuilt on every popup, and
+        most popups never look at the submenu. They start when it is shown.
+        """
+        config = self.app.config
+        resolution = devices_module.resolve(config.get("devices.mic"), config.get("devices.speaker"))
+        labels = {device.name: device.label() for device in sources}
+        rows: list[Gtk.MenuItem] = [monospace_item(t("menu.meters_heading"))]
+        wanted: list[tuple] = []
+        for side, caption, names in (
+            ("mic", t("common.you"), resolution.mics),
+            ("speaker", t("common.other"), resolution.speakers),
+        ):
+            if not names:
+                rows.append(monospace_item(f"{caption:10} {t('menu.meters_none')}"))
+            for name in names:
+                item = monospace_item("")
+                rows.append(item)
+                wanted.append((side, name, item, caption, labels.get(name, name)))
+        return rows, wanted
+
+    def _start_meters(self, wanted: list[tuple]) -> None:
+        self._stop_meters()
+        for side, name, item, caption, label in wanted:
+            self._meters.append((Meter(name, side, self.app.config), item, caption, label))
+        self._update_meters()
+        self._meter_source = GLib.timeout_add(METER_REFRESH_MS, self._update_meters)
+
+    def _stop_meters(self) -> None:
+        if self._meter_source is not None:
+            GLib.source_remove(self._meter_source)
+            self._meter_source = None
+        meters, self._meters = self._meters, []
+        for meter, _item, _caption, _label in meters:
+            meter.stop()
+
+    def _meter_text(self, meter: Meter, caption: str, label: str) -> str:
+        if meter.device == bridge.DEVICE and bridge.status() != "connected":
+            state = t("menu.meter_bridge_waiting")
+        elif meter.failed:
+            state = t("menu.meter_failed")
+        else:
+            state = f"{level_bar(meter.level_db, 10)} " + (
+                t("common.none").rjust(6) if meter.silent else f"{meter.level_db:5.0f} dB"
+            )
+        return f"{caption:10} {shorten(label, METER_LABEL_CHARS):{METER_LABEL_CHARS}} {state}"
+
+    def _update_meters(self) -> bool:
+        if not self._meters:
+            return False
+        for meter, item, caption, label in self._meters:
+            meter.poll()
+            child = item.get_child()
+            if child is not None:
+                child.set_markup(f"<tt>{escape(self._meter_text(meter, caption, label))}</tt>")
+        return True
 
     # -- submenus -------------------------------------------------------
 
@@ -168,6 +237,14 @@ class AppMenu:
         submenu.append(
             self._device_group(t("menu.device_output"), "speaker", sources, monitors=True)
         )
+        submenu.append(Gtk.SeparatorMenuItem())
+
+        # What each selected track delivers right now, before anything is recorded.
+        meter_rows, wanted = self._meter_rows(sources)
+        for row in meter_rows:
+            submenu.append(row)
+        submenu.connect("map", lambda _menu: self._start_meters(wanted))
+        submenu.connect("unmap", lambda _menu: self._stop_meters())
         submenu.append(Gtk.SeparatorMenuItem())
 
         follow = Gtk.CheckMenuItem(label=t("menu.follow_default"))

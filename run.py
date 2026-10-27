@@ -72,6 +72,7 @@ def load_config() -> Config:
     """Load the settings and switch the interface language before anything else."""
     config = Config().load()
     config.apply_language()
+    config.apply_bridge()
     if config.load_error:
         print(t("cli.settings_unreadable", error=config.load_error), file=sys.stderr)
     return config

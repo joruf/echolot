@@ -24,7 +24,7 @@ from typing import Callable
 from . import __build__, __version__, paths
 from .i18n import t
 from . import virt
-from .audio import capture, devices
+from .audio import bridge, capture, devices
 from .audio.group import SourceGroup
 from .audio import encoder as encoder_module
 from .audio import preroll as preroll_module
@@ -40,6 +40,9 @@ FLUSH_JOIN_TIMEOUT = 5.0
 # Below this length a recording is too short to conclude anything from a silent
 # side; above it, silence for the whole session is a routing problem.
 SILENT_SIDE_MIN_SECONDS = 30.0
+# The host sender connects within about a second of the listener opening; if it
+# has not after this long it is not running, or has nothing to listen to.
+BRIDGE_CONNECT_TIMEOUT = 3.0
 
 
 class State(str, Enum):
@@ -106,6 +109,9 @@ class Recorder:
         self._guard: threading.Thread | None = None
         self._warned_low_disk = False
         self._warned_silent_sides: set[str] = set()
+        self._bridge_unsubscribe: Callable[[], None] | None = None
+        self._bridge_timer: threading.Timer | None = None
+        self._bridge_trouble = False
 
     # -- state ----------------------------------------------------------
 
@@ -402,6 +408,7 @@ class Recorder:
                 )
                 self._watcher.start(current=resolution)
 
+            self._watch_bridge()
             self._set_state(State.RECORDING)
             if config.get("notifications.on_start"):
                 preroll_note = (
@@ -421,6 +428,80 @@ class Recorder:
                 )
             return True
 
+    # -- host bridge ----------------------------------------------------
+
+    def _bridge_in_use(self) -> bool:
+        return any(bridge.DEVICE in group.devices for group in self._captures.values())
+
+    def _watch_bridge(self) -> None:
+        """Report what the host does while this recording runs.
+
+        A listener that nobody connects to would otherwise be a silent hole in the
+        recording, so the absence of the host is said out loud after a few
+        seconds, while it can still be fixed.
+        """
+        self._bridge_trouble = False
+        if not self._bridge_in_use():
+            return
+        self._bridge_unsubscribe = bridge.subscribe(self._on_bridge_event)
+        timer = threading.Timer(BRIDGE_CONNECT_TIMEOUT, self._check_bridge_connected)
+        timer.daemon = True
+        self._bridge_timer = timer
+        timer.start()
+
+    def _unwatch_bridge(self) -> None:
+        unsubscribe, self._bridge_unsubscribe = self._bridge_unsubscribe, None
+        if unsubscribe is not None:
+            unsubscribe()
+        timer, self._bridge_timer = self._bridge_timer, None
+        if timer is not None:
+            timer.cancel()
+
+    def _check_bridge_connected(self) -> None:
+        if self._bridge_unsubscribe is None or self._bridge_trouble:
+            return
+        status = bridge.status()
+        if status == "connected":
+            return
+        self._bridge_trouble = True
+        self._log_bridge("not_connected", status=status)
+        if status != "no_header":
+            self._notify(
+                paths.APP_NAME,
+                t("bridge.not_connected", seconds=int(BRIDGE_CONNECT_TIMEOUT)),
+                "warning",
+                urgent=True,
+            )
+
+    def _log_bridge(self, event: str, **fields) -> None:
+        speech = self._speechlog
+        if speech is not None:
+            speech.event(f"bridge_{event}", self.elapsed_seconds, **fields)
+
+    def _on_bridge_event(self, event: str, fields: dict) -> None:
+        """Called from the bridge's receiver thread."""
+        self._log_bridge(event, **fields)
+        if event == "connected":
+            if self._bridge_trouble:
+                self._bridge_trouble = False
+                self._notify(
+                    paths.APP_NAME, t("bridge.connected", device=fields.get("device", ""))
+                )
+        elif event == "no_headset":
+            self._bridge_trouble = True
+            self._notify(paths.APP_NAME, t("bridge.no_headset"), "warning", urgent=True)
+        elif event == "bad_header":
+            self._bridge_trouble = True
+            self._notify(
+                paths.APP_NAME,
+                t("bridge.bad_header", peer=fields.get("peer", "")),
+                "warning",
+                urgent=True,
+            )
+        elif event == "disconnected":
+            self._bridge_trouble = True
+            self._notify(paths.APP_NAME, t("bridge.lost"), "warning", urgent=True)
+
     def _on_silent_side(self, side: str, seconds: float) -> None:
         """A side has delivered nothing but exact zeros for a while.
 
@@ -438,7 +519,15 @@ class Recorder:
             )
         label = t("common.mic") if side == MIC else t("common.other")
         duration = format_duration(seconds)
-        if side == SPEAKER and virt.in_vm():
+        if side == SPEAKER and self._bridge_in_use():
+            # The bridge is the way the host's audio gets here, so the useful
+            # question is where along it the sound stops: no sender at all, or a
+            # sender listening to a device nobody plays on.
+            if bridge.status() == "connected":
+                text = t("session.side_no_audio_bridge", duration=duration)
+            else:
+                text = t("session.side_no_audio_bridge_waiting", sides=label, duration=duration)
+        elif side == SPEAKER and virt.in_vm():
             # In a guest this is not a mystery, it is the normal case: the host's
             # audio never reaches the guest. Saying what to do beats saying that
             # something is wrong.
@@ -506,6 +595,13 @@ class Recorder:
                 if speech is not None:
                     speech.event(
                         "source_spawn_failed", 0.0, side=side, device=device, error=str(exc)
+                    )
+                if device == bridge.DEVICE:
+                    self._notify(
+                        paths.APP_NAME,
+                        t("bridge.port_busy", port=bridge.port(), error=exc),
+                        "warning",
+                        urgent=True,
                     )
                 continue
             processes.append(process)
@@ -591,6 +687,7 @@ class Recorder:
             if watcher is not None:
                 watcher.stop()
 
+            self._unwatch_bridge()
             self._guard_stop.set()
             guard, self._guard = self._guard, None
             if guard is not None and guard is not threading.current_thread():
