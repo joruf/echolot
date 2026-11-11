@@ -91,6 +91,21 @@ Check that everything is in place at any time:
 python3 run.py --check
 ```
 
+## Executable
+
+A single-file Linux executable (x86_64, built on Ubuntu 22.04, runs on the same or a newer glibc) is published on the [Releases page](https://github.com/joruf/echolot/releases). Download `echolot-linux-x86_64-<version>-build<build>`, make it executable (`chmod +x`) and start it. `--version` prints its version; the autostart entry the tray menu writes points at the file itself, so keep it where it is.
+
+The file carries Python and the GTK bindings. The audio tools stay the system's: it still needs FFmpeg and `pulseaudio-utils` (`parec`, `pactl`), and offers to install them on the first start, as the checkout does. The version is the one in `echolot/__init__.py`, raised by hand: the release tag is `v<version>-build<build>`.
+
+Build it yourself with the system Python (only it can see PyGObject):
+
+```bash
+sudo apt install python3-venv python3-tk python3-gi gir1.2-gtk-3.0 librsvg2-common
+/usr/bin/python3 build-exe.py            # --clean rebuilds the build environment, --keep-env reuses it
+```
+
+The result is `dist/echolot-linux-x86_64-<version>-build<build>`. The GitHub Actions workflow `release-exe.yml` does the same on every push to `main` and publishes the file as a release.
+
 ## 3. Using it
 
 | Action | Result |

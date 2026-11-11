@@ -23,6 +23,9 @@ def python_command() -> str:
 
 def exec_command(autostart: bool = True) -> str:
     flag = " --autostart" if autostart else ""
+    if getattr(sys, "frozen", False):
+        # The single-file executable is the program: there is no interpreter and no script.
+        return f'"{sys.executable}"{flag}'
     return f'{python_command()} "{paths.MAIN_SCRIPT}"{flag}'
 
 

@@ -1,0 +1,95 @@
+name: Executable
+
+# Builds the single-file Linux executable with build-exe.py and publishes it as
+# a GitHub release with the tag v<version>-build<build>. The one asset is named
+# echolot-linux-x86_64-<version>-build<build>: the Loresoft site parses that name.
+#
+# The version is the one the program states itself (__version__ and __build__ in
+# echolot/__init__.py, raised by hand), so a push without a new number refreshes
+# the release it already has. Run it by hand to rebuild the current one.
+# Echolot is Linux only (a tray recorder for PulseAudio/PipeWire),
+# so there is no Windows build.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    strategy:
+      # One failing system must not take another one's file with it: the release
+      # below publishes whatever was built.
+      fail-fast: false
+      matrix:
+        # The oldest supported Ubuntu: the file runs on every system with the same
+        # or a newer glibc, never on an older one.
+        os: [ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # The whole history.
+          fetch-depth: 0
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-venv python3-tk python3-gi gir1.2-gtk-3.0 librsvg2-common
+
+      # Optional typelibs: the program works without them, with less.
+      - name: Install optional build dependencies
+        run: sudo apt-get install -y gir1.2-notify-0.7 gir1.2-xapp-1.0 || true
+
+      # The system Python, not setup-python: only it can see PyGObject (pip cannot install it).
+      - name: Build
+        run: /usr/bin/python3 build-exe.py
+
+      - name: Keep the executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: exe-${{ matrix.os }}
+          path: dist/echolot-linux-*
+          if-no-files-found: error
+
+  release:
+    name: Publish the release
+    needs: build
+    # Also when a build failed, as long as the run was not cancelled.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Collect the executable
+        uses: actions/download-artifact@v4
+        with:
+          pattern: exe-*
+          path: dist
+          merge-multiple: true
+
+      - name: Create or refresh the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The tag comes from the file name, so the tag and the asset can never disagree.
+          FILE=$(ls dist/echolot-linux-x86_64-*-build* | head -n 1)
+          REST="${FILE##*/echolot-linux-x86_64-}"
+          VERSION="${REST%%-build*}"
+          BUILD="${REST##*-build}"
+          TAG="v${VERSION}-build${BUILD}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/echolot-linux-* --clobber
+          else
+            gh release create "$TAG" dist/echolot-linux-* \
+              --target "$GITHUB_SHA" \
+              --title "Echolot ${VERSION} (${BUILD})" \
+              --notes "Single-file Linux executable built by build-exe.py on Ubuntu 22.04. Make the file executable (chmod +x) and start it. Needs FFmpeg and pulseaudio-utils (parec, pactl) on the system."
+          fi

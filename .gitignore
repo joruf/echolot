@@ -1,3 +1,7 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+
+# Single-file executable: build environment and result of build-exe.py
+/build/
+/dist/

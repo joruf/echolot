@@ -28,6 +28,7 @@ if str(PROJECT_DIR) not in sys.path:
 # shows the work as it happens; see bootstrap_ui.py. `--setup` opens that window even when nothing
 # is missing, which is how to see what is installed.
 from bootstrap_ui import Need, ensure  # noqa: E402
+import exe_support  # noqa: E402
 
 NEEDS = (
     Need(label="GTK 3 bindings for Python", module="gi",
@@ -45,6 +46,17 @@ NEEDS = (
 # Only when the application is actually being started. Importing this module — which the test
 # suite does — should not check anything, let alone put an installer window on screen.
 if __name__ == "__main__":
+    # Answered before anything is checked or imported: no display, no FFmpeg, no audio tools needed.
+    if "--version" in sys.argv[1:]:
+        from echolot import VERSION_LABEL, paths
+
+        print(f"{paths.APP_NAME} {VERSION_LABEL}")
+        raise SystemExit(0)
+
+    # In the single-file executable the programs it starts - FFmpeg, parec, the package manager
+    # the check below may call - must not inherit its bundled libraries.
+    exe_support.use_system_environment_for_children()
+
     # Taken out of the arguments once it has been read, so the application's own parser does
     # not trip over a flag that was never meant for it.
     _SETUP = "--setup" in sys.argv
